@@ -165,7 +165,10 @@ def make_dataset(args):
         data['x_train'][:,-2] = pd.Series(data['x_train'][:,-2]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
         data['x_train'][:,-1] = pd.Series(data['x_train'][:,-1]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
 
-    if args.centering == 'all':
-        data['x_train'] = StandardScaler(with_std=False).fit_transform(data['x_train'])
+    if args.centering == True:
+        sc = StandardScaler(with_std=False)
+        data['x_train'] = sc.fit_transform(data['x_train'])
+        data['x_task_a'] = sc.transform(data['x_task_a'])
+        data['x_task_b'] = sc.transform(data['x_task_b'])
         x_in = StandardScaler(with_std=False).fit_transform(x_in)  
     return data

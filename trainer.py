@@ -1,7 +1,7 @@
+import numpy as np
 import torch
 import torch.utils.data
-
-
+from utils.nnet import from_gpu
 
 
 class Optimiser():
@@ -12,27 +12,27 @@ class Optimiser():
         self.perform_sgd = args.perform_sgd 
         self.perform_hebb = args.perform_hebb 
         self.gating = args.gating
-        
+        print(self.perform_sgd)
 
-    def step(self,model,x_batch, r_batch):
+    def step(self,model,x_in, r_target):
         
-        if self.perform_sgd:
-            self.sgd_update(model,x_batch,r_batch)
-        if self.perform_hebb:
-            if self.gating=='SLA':
-                self.sla_update(model,x_batch)
+        if self.perform_sgd==True:
+            self.sgd_update(model,x_in,r_target)            
+        if self.perform_hebb==True:
+            if self.gating=='SLA':                
+                self.sla_update(model,x_in)
             elif self.gating=='GHA':
-                self.gha_update(model,x_batch)
+                self.gha_update(model,x_in)
         
 
 
-    def sgd_update(self,model,x_batch,r_batch):
+    def sgd_update(self,model,x_in,r_target):
         '''
         performs sgd update 
         '''
-        y_ = model(x_batch)
+        y_ = model(x_in)
         # compute loss 
-        loss = model.loss_funct(r_batch, y_)
+        loss = model.loss_funct(r_target, y_)
         # get gradients 
         loss.backward()
         # update weights 
@@ -41,30 +41,59 @@ class Optimiser():
                 theta -= theta.grad*self.lrate_sgd
             model.zero_grad()
 
-    def sla_update(self,model,x_batch):
+    def sla_update(self,model,x_in):
         '''
         performs update with subspace learning algorithm
         '''
-        x_batch = torch.t(x_batch[0,:]) # 27x1
+        # x_in = torch.t(x_in) # 27x1
+        x_in = x_in.reshape(27,1)
         with torch.no_grad():
-            Y = torch.t(model.W_h) @ x_batch 
-            model.W_h += torch.t((torch.outer(Y,x_batch) - torch.outer(Y,model.W_h @ Y) / self.hebb_normaliser) * self.lrate_hebb)
+            Y = torch.t(model.W_h) @ x_in 
+            Y = Y.reshape(-1)
+            x_in = x_in.reshape(-1)
+            model.W_h += torch.t((torch.outer(Y,x_in) - torch.outer(Y,model.W_h @ Y) / self.hebb_normaliser) * self.lrate_hebb)
             model.zero_grad()
 
-    def gha_update(self, model, x_batch):
+    def gha_update(self, model, x_in):
         '''
         performs update with generalised hebbian algorithm
         '''
-        x_batch = torch.t(x_batch[0,:]) # 27x1
+        x_in = torch.t(x_in) # 27x1
         with torch.no_grad():
-            Y = torch.t(model.W_h) @ x_batch            
-            model.W_h += torch.t((torch.outer(Y,x_batch) - (torch.tril(torch.outer(Y,Y)) @ torch.t(model.W_h)) / self.hebb_normaliser) * self.lrate_hebb)
+            Y = torch.t(model.W_h) @ x_in            
+            model.W_h += torch.t((torch.outer(Y,x_in) - (torch.tril(torch.outer(Y,Y)) @ torch.t(model.W_h)) / self.hebb_normaliser) * self.lrate_hebb)
             model.zero_grad()
 
-    # def tril(self,X):
-    #     # get lower triangular
-    #     X = torch.tril(X)
-    #     # flatten
-    #     X = X.reshape(1, -1)
-    #     X = X.squeeze()
-    #     return X
+
+
+def train_model(args,model,optim,data):
+    '''
+    trains neural network model
+    '''
+
+    # send data to gpu
+    x_train = torch.from_numpy(data['x_train']).float().to(args.device)
+    y_train = torch.from_numpy(data['y_train']).float().to(args.device)
+
+    # test: create test sets 
+    x_a = torch.from_numpy(data['x_task_a']).float().to(args.device)
+    r_a = torch.from_numpy(data['y_task_a']).float().to(args.device)
+
+    x_b = torch.from_numpy(data['x_task_b']).float().to(args.device)
+    r_b = torch.from_numpy(data['y_task_b']).float().to(args.device)
+    # loop over data and apply optimiser
+    idces = np.arange(len(x_train))
+    for ii, x,y in zip(idces,x_train,y_train):
+        optim.step(model,x,y)
+        if ii%args.log_interval==0:
+            y_a = model(x_a)
+            y_b = model(x_b)
+
+            # test: loss 
+            loss_a = model.loss_funct(r_a,y_a)
+            loss_b = model.loss_funct(r_b,y_b)
+                
+            print('step {}, loss: task a: {:.4f}, task b {:.4f}'.format(str(ii), from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0]))
+
+    
+    # evaluate performance on first and second task
