@@ -35,6 +35,7 @@ parser.add_argument('--lrate_hebb', default=0.01,type=float, help='learning rate
 parser.add_argument('--hebb_normaliser', default=10.0,type=float, help='normalising const. for hebbian update')
 parser.add_argument('--gating',default='SLA',help='any of: None, manual, GHA, SLA')
 parser.add_argument('--loss_funct',default='reward',type=str,help='loss function, either reward or mse')
+
 # training parameters 
 parser.add_argument('--cuda', default=True, type=boolean_string, help='run model on GPU')
 parser.add_argument('--n_runs', default=10, type=int, help='number of independent training runs')
@@ -59,36 +60,12 @@ if __name__ == "__main__":
     # get dataset
     dataset = make_dataset(args)
     
-    
-
     # instantiate model and optimiser
     model = Nnet(args).to(args.device)
     optim = Optimiser(args)
 
-    # test: create test sets 
-    x_a = torch.from_numpy(dataset['x_task_a']).float().to(args.device)
-    r_a = torch.from_numpy(dataset['y_task_a']).float().to(args.device)
-
-    x_b = torch.from_numpy(dataset['x_task_b']).float().to(args.device)
-    r_b = torch.from_numpy(dataset['y_task_b']).float().to(args.device)
-    
-    y_a = model(x_a)
-    y_b = model(x_b)
-
-    # test: loss 
-    loss_a = optim.loss_funct(r_a,y_a)
-    loss_b = optim.loss_funct(r_b,y_b)
-         
-    print('loss at init: task a: {:.4f}, task b {:.4f}'.format(from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0]))
     # train model
     train_model(args, model,optim,dataset)
-    y_a = model(x_a)
-    y_b = model(x_b)
-    loss_a = optim.loss_funct(r_a,y_a)
-    loss_b = optim.loss_funct(r_b,y_b)
-         
-    print('loss after training: task a: {:.4f}, task b {:.4f}'.format(from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0]))
-    
        
 
     # evaluate model 
