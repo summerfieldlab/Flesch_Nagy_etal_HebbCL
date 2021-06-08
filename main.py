@@ -12,13 +12,6 @@ from trainer import Optimiser, train_model
 from parameters import parser
 
 
-def boolean_string(s):
-    if s not in {'False', 'True'}:
-        raise ValueError('Not a valid boolean string')
-    return s == 'True'
-
-
-
 args = parser.parse_args()
 # overwrite cuda argument depending on GPU availability
 args.cuda = args.cuda and torch.cuda.is_available()
