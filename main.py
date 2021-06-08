@@ -18,7 +18,7 @@ def boolean_string(s):
 
 
 # parameters 
-parser = argparse.ArgumentParser(description='CL simulations')
+parser = argparse.ArgumentParser(description='Hebbian Continual Learning simulations')
 
 # data parameters 
 parser.add_argument('--ctx_scaling',default=2, type=int,help='scaling of context signal')
