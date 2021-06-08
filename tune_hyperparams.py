@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # run ray tune
     analysis = tune.run(train_nnet_with_ray,
     config=config,
-    num_samples=50,
+    num_samples=100,
     metric="mean_loss", 
     mode="min",
     resources_per_trial={"cpu": 1, "gpu": 0})
@@ -99,5 +99,6 @@ if __name__ == "__main__":
         'df':df,
         'best':best_cfg
     }
+
     with open('raytune_results.pickle','wb') as f:
        pickle.dump(results,f)
