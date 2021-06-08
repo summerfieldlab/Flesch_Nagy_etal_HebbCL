@@ -1,9 +1,12 @@
 import argparse 
 import torch 
+from pathlib import Path 
+import datetime 
 
 from utils.data import make_dataset
 from utils.nnet import get_device, from_gpu
 
+from logger import MetricLogger
 from model import Nnet
 from trainer import Optimiser, train_model
 
@@ -54,22 +57,30 @@ args.cuda = args.cuda and torch.cuda.is_available()
 
 if __name__ == "__main__":
     
+    # create checkpoint dir 
+    save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    save_dir.mkdir(parents=True)
+
     # get (cuda) device
     args.device,_ = get_device(args.cuda)
     
     # get dataset
     dataset = make_dataset(args)
     
-    # instantiate model and optimiser
-    model = Nnet(args).to(args.device)
+    # instantiate logger, model and optimiser
+    logger = MetricLogger(save_dir)
+    model = Nnet(args)
     optim = Optimiser(args)
 
+    # send model to GPU
+    model = model.to(args.device)
+
     # train model
-    train_model(args, model,optim,dataset)
+    train_model(args, model,optim,dataset, logger)
        
 
     # evaluate model 
-    print('todo model eval')
+    print('todo model eval') # logger.evaluate(model,dataset)
 
     # save results 
-    print('todo save results')
+    print('todo save results') # logger.save()

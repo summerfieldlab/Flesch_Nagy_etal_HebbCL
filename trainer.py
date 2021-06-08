@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-import torch.utils.data
-from utils.nnet import from_gpu
 
+from utils.nnet import from_gpu
+from utils.eval import compute_accuracy
 
 class Optimiser():
     def __init__(self, args):
@@ -82,7 +82,7 @@ class Optimiser():
 
 
 
-def train_model(args,model,optim,data):
+def train_model(args,model,optim,data, logger):
     '''
     trains neural network model
     '''
@@ -114,18 +114,4 @@ def train_model(args,model,optim,data):
             if args.verbose:
                 print('step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}'.format(str(ii), from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0],acc_a,acc_b))
 
-    
-    # evaluate performance on first and second task
-
-
-
-def compute_accuracy(y,y_):
-    '''
-    accuracy for this experiment is defined as matching signs (>= and < 0) for outputs and targets
-    The category boundary trials are neglected.
-    '''
-    valid_targets = y!=0
-    outputs = y_ > 0
-    targets = y > 0
-    return from_gpu(torch.mean((outputs[valid_targets]==targets[valid_targets]).float())).ravel()[0]
-    
+  
