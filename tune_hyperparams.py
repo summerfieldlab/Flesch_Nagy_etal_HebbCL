@@ -13,7 +13,7 @@ from utils.nnet import get_device, from_gpu
 from utils.eval import compute_accuracy
 
 from logger import MetricLogger
-from model import Nnet
+from model import Nnet, Gatednet
 from trainer import Optimiser
 from parameters import parser 
 
@@ -38,12 +38,22 @@ def train_nnet_with_ray(config):
     data = make_dataset(args)
 
     # replace args with ray tune config
-    args.lrate_sgd = config['lrate_sgd']
-    args.perform_hebb = True if config['sla']==1 else False
-
+    if args.gating=='SLA':
+        args.lrate_sgd = config['lrate_sgd']
+        args.perform_hebb = True if config['sla']==1 else False
+        args.hebb_normaliser = config['normaliser']
+        args.lrate_hebb = config['lrate_hebb']
+        args.n_episodes = config['n_episodes']
+    elif args.gating=='manual':
+        args.lrate_sgd = config['lrate_sgd']
+        args.n_episodes = config['n_episodes']        
+        args.weight_init = config['weight_init']
 
     # instantiate model and optimiser 
-    model = Nnet(args) 
+    if args.gating=='manual':
+        model = Gatednet(args)
+    else:
+        model = Nnet(args)
     optim = Optimiser(args) 
 
     # send model to GPU
@@ -75,30 +85,66 @@ def train_nnet_with_ray(config):
 if __name__ == "__main__":
 
     # configuration for ray tune 
-    config = {
-        'lrate_sgd':tune.loguniform(1e-4,1e-1),
-        'lrate_hebb':tune.loguniform(1e-4,1e-1),
-        'normaliser':tune.uniform(1,20),        
-        'sla': tune.grid_search([0,1])
-    }
+    if args.gating=='SLA':
+        config = {
+            'lrate_sgd':tune.loguniform(1e-4,1e-1),
+            'lrate_hebb':tune.loguniform(1e-4,1e-1),
+            'normaliser':tune.uniform(1,20), 
+            'n_episodes':tune.choice([200,500,1000]),
+            'sla':tune.grid_search([0,1])
+        }
 
-    # run ray tune
-    analysis = tune.run(train_nnet_with_ray,
-    config=config,
-    num_samples=100,
-    metric="mean_loss", 
-    mode="min",
-    resources_per_trial={"cpu": 1, "gpu": 0})
-    best_cfg = analysis.get_best_config(
-    metric="mean_loss", mode="min") 
-    print("Best config: ", best_cfg)
+        # run ray tune
+        analysis = tune.run(train_nnet_with_ray,
+        config=config,
+        num_samples=100,
+        metric="mean_loss", 
+        mode="min",
+        resources_per_trial={"cpu": 1, "gpu": 0})
+        best_cfg = analysis.get_best_config(
+        metric="mean_loss", mode="min") 
+        print("Best config: ", best_cfg)
 
-    # results as dataframe 
-    df = analysis.results_df
-    results = {
-        'df':df,
-        'best':best_cfg
-    }
+        # results as dataframe 
+        df = analysis.results_df
+        results = {
+            'df':df,
+            'best':best_cfg
+        }
 
-    with open('raytune_results.pickle','wb') as f:
-       pickle.dump(results,f)
+        with open('raytune_results_sla.pickle','wb') as f:
+            pickle.dump(results,f)
+
+    elif args.gating=='manual':
+        args.cuda = False 
+        args.centering = False
+        args.ctx_scaling = 1
+
+        config = {
+            'lrate_sgd':tune.loguniform(1e-3,1e-1),            
+            'n_episodes':tune.choice([200,500,1000]),
+            'weight_init':tune.loguniform(1e-4,1e-3)
+        }
+
+        # run ray tune
+        analysis = tune.run(train_nnet_with_ray,
+        config=config,
+        num_samples=200,
+        metric="mean_loss", 
+        mode="min",
+        resources_per_trial={"cpu": 1, "gpu": 0})
+        best_cfg = analysis.get_best_config(
+        metric="mean_loss", mode="min") 
+        print("Best config: ", best_cfg)
+
+        # results as dataframe 
+        df = analysis.results_df
+        results = {
+            'df':df,
+            'best':best_cfg
+        }
+
+        with open('raytune_results_manualgating.pickle','wb') as f:
+            pickle.dump(results,f)
+
+    
