@@ -2,6 +2,9 @@ import argparse
 
 
 def boolean_string(s):
+    '''
+    helper function, turns string into boolean variable    
+    '''
     if s not in {'False', 'True'}:
         raise ValueError('Not a valid boolean string')
     return s == 'True'
