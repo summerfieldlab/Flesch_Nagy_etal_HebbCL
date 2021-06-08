@@ -15,7 +15,7 @@ def boolean_string(s):
 parser = argparse.ArgumentParser(description='Hebbian Continual Learning simulations')
 
 # data parameters 
-parser.add_argument('--ctx_scaling',default=2, type=int,help='scaling of context signal')
+parser.add_argument('--ctx_scaling',default=2, type=float,help='scaling of context signal')
 parser.add_argument('--ctx_avg',default=True, type=boolean_string, help='context averaging')
 parser.add_argument('--ctx_avg_window',default=50,type=int, help='ctx avg window width')
 parser.add_argument('--centering',default='True', type=boolean_string,help='centering of data')

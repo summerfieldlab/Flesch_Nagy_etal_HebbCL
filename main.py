@@ -6,7 +6,7 @@ from utils.data import make_dataset
 from utils.nnet import get_device
 
 from logger import MetricLogger
-from model import Nnet
+from model import Gatednet, Nnet
 from trainer import Optimiser, train_model
 from parameters import parser
 
@@ -30,7 +30,10 @@ if __name__ == "__main__":
     
     # instantiate logger, model and optimiser
     logger = MetricLogger(save_dir)
-    model = Nnet(args)
+    if args.gating=='manual':
+        model = Gatednet(args)
+    else:
+        model = Nnet(args)
     optim = Optimiser(args)
 
     # send model to GPU

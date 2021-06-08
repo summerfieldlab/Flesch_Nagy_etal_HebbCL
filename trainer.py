@@ -39,7 +39,8 @@ class Optimiser():
         # update weights 
         with torch.no_grad():
             for theta in model.parameters():
-                theta -= theta.grad*self.lrate_sgd
+                if theta.requires_grad:
+                    theta -= theta.grad*self.lrate_sgd
             model.zero_grad()
 
 
@@ -114,6 +115,7 @@ def train_model(args,model,optim,data, logger):
             logger.log_step(model,optim,x_a,x_b,x_both,r_a,r_b,r_both)
             if args.verbose:
                 print('step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}'.format(str(ii), logger.losses_1st[-1],logger.losses_2nd[-1], logger.acc_1st[-1],logger.acc_2nd[-1]))
+                print('... n_a: {:d} n_b: {:d}'.format(logger.n_only_a[-1],logger.n_only_b[-1]))
     
     logger.log_patterns(model,x_both)
     print('done')
