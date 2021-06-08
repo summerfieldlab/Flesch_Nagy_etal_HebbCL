@@ -98,20 +98,23 @@ def train_model(args,model,optim,data, logger):
     x_b = torch.from_numpy(data['x_task_b']).float().to(args.device)
     r_b = torch.from_numpy(data['y_task_b']).float().to(args.device)
 
+    x_both = torch.from_numpy(np.concatenate((data['x_task_a'],data['x_task_b']),axis=0)).float().to(args.device)
+    r_both = torch.from_numpy(np.concatenate((data['y_task_a'],data['y_task_b']),axis=0)).float().to(args.device)
+
+    # log state of initialised model
+    logger.log_init(model)
+    logger.log_patterns(model,x_both)
+
     # loop over data and apply optimiser
     idces = np.arange(len(x_train))
     for ii, x,y in zip(idces,x_train,y_train):
         optim.step(model,x,y)
         if ii%args.log_interval==0:
-            y_a = model(x_a)
-            y_b = model(x_b)
-
-            # test: loss 
-            loss_a = optim.loss_funct(r_a,y_a)
-            loss_b = optim.loss_funct(r_b,y_b)
-            acc_a = compute_accuracy(r_a,y_a)
-            acc_b = compute_accuracy(r_b,y_b)
+            
+            logger.log_step(model,optim,x_a,x_b,x_both,r_a,r_b,r_both)
             if args.verbose:
-                print('step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}'.format(str(ii), from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0],acc_a,acc_b))
-
+                print('step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}'.format(str(ii), logger.losses_1st[-1],logger.losses_2nd[-1], logger.acc_1st[-1],logger.acc_2nd[-1]))
+    
+    logger.log_patterns(model,x_both)
+    print('done')
   

@@ -47,9 +47,10 @@ parser.add_argument('--perform_sgd',default=True, type=boolean_string, help='tur
 parser.add_argument('--perform_hebb',default=True, type=boolean_string, help='turn hebbian update on/off')
 parser.add_argument('--training_schedule',default='blocked',help='either interleaved or blocked')
 parser.add_argument('--log-interval',default=100,type=int,help='log very n training steps')
+
 # debug params
 parser.add_argument('--verbose',default=True, type=boolean_string, help='verbose mode, print all logs to stdout')
-
+parser.add_argument('--save_results',default=False,type=boolean_string,help='save model and results (yes/no)')
 args = parser.parse_args()
 # overwrite cuda argument depending on GPU availability
 args.cuda = args.cuda and torch.cuda.is_available()
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     
     # create checkpoint dir 
     save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    save_dir.mkdir(parents=True)
+    
 
     # get (cuda) device
     args.device,_ = get_device(args.cuda)
@@ -79,8 +80,7 @@ if __name__ == "__main__":
     train_model(args, model,optim,dataset, logger)
        
 
-    # evaluate model 
-    print('todo model eval') # logger.evaluate(model,dataset)
-
     # save results 
-    print('todo save results') # logger.save()
+    if args.save_results:
+        save_dir.mkdir(parents=True)
+        logger.save(model)
