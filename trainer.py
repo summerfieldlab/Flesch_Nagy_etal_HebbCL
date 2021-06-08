@@ -97,6 +97,7 @@ def train_model(args,model,optim,data):
 
     x_b = torch.from_numpy(data['x_task_b']).float().to(args.device)
     r_b = torch.from_numpy(data['y_task_b']).float().to(args.device)
+
     # loop over data and apply optimiser
     idces = np.arange(len(x_train))
     for ii, x,y in zip(idces,x_train,y_train):
@@ -110,7 +111,8 @@ def train_model(args,model,optim,data):
             loss_b = optim.loss_funct(r_b,y_b)
             acc_a = compute_accuracy(r_a,y_a)
             acc_b = compute_accuracy(r_b,y_b)
-            print('step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}'.format(str(ii), from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0],acc_a,acc_b))
+            if args.verbose:
+                print('step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}'.format(str(ii), from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0],acc_a,acc_b))
 
     
     # evaluate performance on first and second task
