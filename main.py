@@ -89,8 +89,7 @@ if __name__ == "__main__":
          
     print('loss after training: task a: {:.4f}, task b {:.4f}'.format(from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0]))
     
-    
-    
+       
 
     # evaluate model 
     print('todo model eval')
