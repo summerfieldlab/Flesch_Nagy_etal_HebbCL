@@ -12,7 +12,9 @@ class Optimiser():
         self.perform_sgd = args.perform_sgd 
         self.perform_hebb = args.perform_hebb 
         self.gating = args.gating
+        self.losstype = args.loss_funct
         print(self.perform_sgd)
+
 
     def step(self,model,x_in, r_target):
         
@@ -22,8 +24,7 @@ class Optimiser():
             if self.gating=='SLA':                
                 self.sla_update(model,x_in)
             elif self.gating=='GHA':
-                self.gha_update(model,x_in)
-        
+                self.gha_update(model,x_in)        
 
 
     def sgd_update(self,model,x_in,r_target):
@@ -32,7 +33,7 @@ class Optimiser():
         '''
         y_ = model(x_in)
         # compute loss 
-        loss = model.loss_funct(r_target, y_)
+        loss = self.loss_funct(r_target, y_)
         # get gradients 
         loss.backward()
         # update weights 
@@ -40,6 +41,7 @@ class Optimiser():
             for theta in model.parameters():
                 theta -= theta.grad*self.lrate_sgd
             model.zero_grad()
+
 
     def sla_update(self,model,x_in):
         '''
@@ -54,6 +56,7 @@ class Optimiser():
             model.W_h += torch.t((torch.outer(Y,x_in) - torch.outer(Y,model.W_h @ Y) / self.hebb_normaliser) * self.lrate_hebb)
             model.zero_grad()
 
+
     def gha_update(self, model, x_in):
         '''
         performs update with generalised hebbian algorithm
@@ -63,6 +66,19 @@ class Optimiser():
             Y = torch.t(model.W_h) @ x_in            
             model.W_h += torch.t((torch.outer(Y,x_in) - (torch.tril(torch.outer(Y,Y)) @ torch.t(model.W_h)) / self.hebb_normaliser) * self.lrate_hebb)
             model.zero_grad()
+
+
+    def loss_funct(self,reward,y_hat):
+        '''
+        loss function to use.
+        either negative reward or MSE on the model outputs.
+        '''
+        if self.losstype=='reward':
+            # minimise -1*reward 
+            loss = -1*torch.t(torch.sigmoid(y_hat)) @ reward
+        elif self.losstype=='mse':
+            loss = torch.mean(torch.pow(reward-y_hat,2)) 
+        return loss
 
 
 
@@ -90,8 +106,8 @@ def train_model(args,model,optim,data):
             y_b = model(x_b)
 
             # test: loss 
-            loss_a = model.loss_funct(r_a,y_a)
-            loss_b = model.loss_funct(r_b,y_b)
+            loss_a = optim.loss_funct(r_a,y_a)
+            loss_b = optim.loss_funct(r_b,y_b)
                 
             print('step {}, loss: task a: {:.4f}, task b {:.4f}'.format(str(ii), from_gpu(loss_a).ravel()[0],from_gpu(loss_b).ravel()[0]))
 

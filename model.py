@@ -20,16 +20,9 @@ class Nnet(nn.Module):
     def forward(self,x_batch):        
         self.x_h = x_batch @ self.W_h + self.b_h 
         self.y_h = F.relu(self.x_h)
-        self.x_o = self.y_h @ self.W_o + self.b_o
-        self.y = torch.sigmoid(self.x_o)
-        # self.y = self.x_o
-        
+        self.y = self.y_h @ self.W_o + self.b_o
+               
         return self.y
 
-    def loss_funct(self,reward,y_hat):
-        # minimise -1*reward 
-        loss = -1*torch.t(y_hat) @ reward
-
-        # loss = torch.mean(torch.pow(reward-y_hat,2)) 
-        return loss 
+     
 
