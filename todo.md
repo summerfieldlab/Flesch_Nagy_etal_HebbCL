@@ -9,7 +9,7 @@
 - checkpoint folders into logger/init
 - logger inheritance: loggerBase, loggerMLP, loggerCNN ?
 
-### random search
+### 1. random search
 <!-- - parallel processing toolbox for HP search (ray tune) -->
 <!-- https://docs.ray.io/en/master/tune/examples/tune_basic_example.html
 https://docs.ray.io/en/master/ray-overview/index.html
@@ -18,7 +18,17 @@ https://docs.ray.io/en/master/tune/api_docs/schedulers.html
 https://docs.ray.io/en/master/tune/tutorials/tune-tutorial.html
 https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-cifar.html -->
 
+<!-- - simulation 1: vanilla blocked vs interleaved -->
+<!-- - simulation 2: gated blocked  -->
+- (simulation 3: only GHA/SLA) no need to optimise
+<!-- - simulation 4: SLA network blocked -->
+- (simulation 5: sluggish sla interleaved) no need to optimise
+- simulation 6: sluggish sla on human choices (single subject or average within group, let's see)
 
+### 2. evaluate best fitting hyperparameters
+- for each simu above, collect ~30 independent runs (parallel processing toolbox)
+
+### 3. analyse data 
 ### fits to human data
 - train at single trial level
 
@@ -28,7 +38,7 @@ https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-cifar.html -->
 - simulation 2: gated blocked 
 - simulation 3: only GHA/SLA
 - simulation 4: SLA network blocked
-- simulation 5: sluggish sla interleaved
+- simulation 5: sluggish sla interleaved: show choices/accuracy for different levels of sluggishness
 - simulation 6: sluggish sla on human choices 
 
 ### analysis notebook: evaluate model fits
