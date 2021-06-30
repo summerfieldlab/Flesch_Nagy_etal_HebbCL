@@ -73,12 +73,15 @@ class Optimiser():
         '''
         loss function to use.
         either negative reward or MSE on the model outputs.
+        (or mse between logistic model output and true labels (or subject responses))
         '''
         if self.losstype=='reward':
             # minimise -1*reward 
             loss = -1*torch.t(torch.sigmoid(y_hat)) @ reward
         elif self.losstype=='mse':
             loss = torch.mean(torch.pow(reward-y_hat,2)) 
+        elif self.losstype=='sigmoidmse':
+            loss = torch.mean(torch.pow(reward-torch.sigmoid(y_hat),2)) 
         return loss
 
 

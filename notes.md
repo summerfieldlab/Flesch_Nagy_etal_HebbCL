@@ -1,4 +1,9 @@
-### Best fitting parameters 
+### Best fitting parameters
+
+#### vanilla blocked vs interleaved
+- blocked: 
+- interleaved: 
+
 - blocked sla, mse: hebb norm 1, sgd lrate 1e-3
 - blocked sla, -rew: hebb norm 10, sgd lrate 1e-2
 

@@ -88,7 +88,7 @@ class MetricLogger():
         self.all_y_hidden.append(from_gpu(model.y_h))
         self.all_y_out.append(from_gpu(model.y))
 
-    def save(self,model):
+    def save(self,model, fname_results='results.pkl', fname_model='model.pkl'):
         '''
         saves logs (and model) to disk
         '''
@@ -113,9 +113,7 @@ class MetricLogger():
         results['n_only_b'] = np.asarray(self.n_only_b)
         results['hidden_dotprod'] = np.asarray(self.hidden_dotprod)
 
-        # set filenames 
-        fname_results = 'results.pickle'
-        fname_model = 'model.pickle'
+       
 
         # save results and model
         with open(self.save_log / fname_results,'wb') as f:
