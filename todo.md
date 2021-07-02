@@ -2,18 +2,20 @@
 1. collect individual runs 
 2. new branch: fit to human choice patterns 
     - import human choice patterns 
-    - new dataset generator (takes choice mats as input)
-    - new loss function & model
+    <!-- - new dataset generator (takes choice mats as input) -->
+    - new loss function & model (sigmoid output, mse)
     - trial run with interleaved + sluggishness 
     - raytune: find best hyperparameters for each choicemat (single participants or at grp level)
     - collect multiple runs with best fitting parameters 
+3. analysis notebook
+    - import runs, create alldata dict 
+    - tbc
 ### logger 
 <!-- - log performance, network weights, layer-wise activity patterns -->
 
 ### code refactoring
 - Optimiser into optimiser.py
 - train_model into utils.trainer.py ?
-- checkpoint folders into logger/init
 - logger inheritance: loggerBase, loggerMLP, loggerCNN ?
 
 ### 1. random search
@@ -60,3 +62,10 @@ python main.py --gating=manual --cuda=True  --ctx_scaling=1 --lrate_sgd=0.01 --c
         - choice matrices
         - rsa on human data and model's choices
         - choice model on human data and model's choices
+
+
+
+
+-----------------
+
+
