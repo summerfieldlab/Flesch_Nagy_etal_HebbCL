@@ -1,5 +1,12 @@
 ### todo list 
-
+1. collect individual runs 
+2. new branch: fit to human choice patterns 
+    - import human choice patterns 
+    - new dataset generator (takes choice mats as input)
+    - new loss function & model
+    - trial run with interleaved + sluggishness 
+    - raytune: find best hyperparameters for each choicemat (single participants or at grp level)
+    - collect multiple runs with best fitting parameters 
 ### logger 
 <!-- - log performance, network weights, layer-wise activity patterns -->
 
