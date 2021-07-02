@@ -25,7 +25,8 @@ if __name__ == "__main__":
         print('run {} / {}'.format(str(i_run),str(args.n_runs)))
         
         # create checkpoint dir 
-        save_dir = Path("checkpoints") / args.save_dir / 'run_'+str(i_run)
+        run_name = 'run_'+str(i_run)
+        save_dir = Path("checkpoints") / args.save_dir / run_name
         
 
         # get (cuda) device
