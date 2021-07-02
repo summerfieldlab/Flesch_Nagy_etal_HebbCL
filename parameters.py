@@ -35,13 +35,14 @@ parser.add_argument('--loss_funct',default='reward',type=str,help='loss function
 
 # training parameters 
 parser.add_argument('--cuda', default=False, type=boolean_string, help='run model on GPU')
-parser.add_argument('--n_runs', default=10, type=int, help='number of independent training runs')
+parser.add_argument('--n_runs', default=30, type=int, help='number of independent training runs')
 parser.add_argument('--n_episodes', default=200, type=int, help='number of training episodes')
 parser.add_argument('--perform_sgd',default=True, type=boolean_string, help='turn supervised update on/off')
 parser.add_argument('--perform_hebb',default=True, type=boolean_string, help='turn hebbian update on/off')
 parser.add_argument('--training_schedule',default='blocked',help='either interleaved or blocked')
 parser.add_argument('--log-interval',default=50,type=int,help='log very n training steps')
 
-# debug params
+# io params
 parser.add_argument('--verbose',default=True, type=boolean_string, help='verbose mode, print all logs to stdout')
-parser.add_argument('--save_results',default=False,type=boolean_string,help='save model and results (yes/no)')
+parser.add_argument('--save_results',default=True,type=boolean_string,help='save model and results (yes/no)')
+parser.add_argument('--save_dir',default='simu1',help='save dir for model outputs')
