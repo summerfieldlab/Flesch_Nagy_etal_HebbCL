@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     # overwrite standard parameters
     args.cuda = False
-    args.ctx_scaling = 2
+    args.ctx_scaling = 5
     args.lrate_sgd=0.03
     args.lrate_hebb=0.03
     args.weight_init=1e-3
