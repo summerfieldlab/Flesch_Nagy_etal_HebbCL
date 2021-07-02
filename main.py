@@ -42,6 +42,7 @@ if __name__ == "__main__":
     # train model
     train_model(args, model,optim,dataset, logger)
        
+  
 
     # save results 
     if args.save_results:

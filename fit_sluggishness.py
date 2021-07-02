@@ -1,13 +1,15 @@
 '''
-collects multiple runs for a range of sluggishness values
+find amount of sluggishness needed to reproduce human choice patterns
+
 '''
 import torch 
+import pickle
 from pathlib import Path 
-
+import datetime 
 import numpy as np
 from utils.data import make_dataset
 from utils.nnet import get_device
-
+from scipy.io import loadmat
 from logger import MetricLogger
 from model import Gatednet, Nnet
 from trainer import Optimiser, train_model
@@ -18,13 +20,19 @@ args = parser.parse_args()
 # overwrite cuda argument depending on GPU availability
 args.cuda = args.cuda and torch.cuda.is_available()
 
-def execute_run(i_run):
-    print('run {} / {}'.format(str(i_run),str(args.n_runs)))
-        
-    # create checkpoint dir 
-    run_name = 'run_'+str(i_run)
-    save_dir = Path("checkpoints") / args.save_dir / run_name
-    
+# load choicemats 
+choicemats = loadmat('datasets/human_choices.mat')
+cmat_a = choicemats['cmat_b_north'].mean(0)
+cmat_b = choicemats['cmat_b_south'].mean(0)
+choices_blocked = np.hstack((cmat_a.flatten(),cmat_b.flatten()))    
+cmat_a = choicemats['cmat_i_north'].mean(0)
+cmat_b = choicemats['cmat_i_south'].mean(0)
+choices_interleaved = np.hstack((cmat_a.flatten(),cmat_b.flatten()))    
+
+
+def execute_run(sv):
+    # set amount of sluggishness
+    args.ctx_avg_window = sv
     # get (cuda) device
     args.device,_ = get_device(args.cuda)
     
@@ -32,6 +40,7 @@ def execute_run(i_run):
     dataset = make_dataset(args)
     
     # instantiate logger, model and optimiser
+    save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     logger = MetricLogger(save_dir)
     if args.gating=='manual':
         model = Gatednet(args)
@@ -44,12 +53,16 @@ def execute_run(i_run):
 
     # train model
     train_model(args, model,optim,dataset, logger)
-    
 
-    # save results 
-    if args.save_results:
-        save_dir.mkdir(parents=True)
-        logger.save(model)
+    # compute losses 
+    y_out = np.array(logger.all_y_out).squeeze()[1,:]
+    loss_blocked = np.mean(np.power(choices_blocked-y_out,2))
+    loss_interleaved = np.mean(np.power(choices_interleaved-y_out,2))
+    ## return losses
+    losses = [loss_blocked,loss_interleaved]
+    return losses    
+
+    
 
 
 if __name__ == "__main__":
@@ -60,7 +73,7 @@ if __name__ == "__main__":
     args.lrate_sgd=0.03
     args.lrate_hebb=0.03
     args.weight_init=1e-3
-    args.save_results = True 
+    args.save_results = False 
     args.gating ='SLA'
     args.centering = 'True'
     args.verbose = False
@@ -69,9 +82,9 @@ if __name__ == "__main__":
     args.loss_funct = 'rew_on_sigmoid'
 
 
-    sluggish_vals = np.array([1,2,5,10,25,50,100,200,300,500])
-    for ii,sv in enumerate(sluggish_vals):
-        args.ctx_avg_window = sv    
-        args.save_dir = 'sluggish_sla_int_sv' + str(sv)
-        Parallel(n_jobs=30,verbose=10)(delayed(execute_run)(i_run) for i_run in range(args.n_runs))
-      
+    sluggish_vals = np.arange(1,401,1)
+    losses = Parallel(n_jobs=32,verbose=10)(delayed(execute_run)(sv) for sv in sluggish_vals)
+    
+    with open('fit_sluggishness_results.pkl','wb') as f:
+        pickle.dump(losses,f)
+   
