@@ -9,7 +9,7 @@ from utils.data import make_dataset
 from utils.nnet import get_device
 
 from logger import MetricLogger
-from model import Gatednet, Nnet
+from model import ChoiceNet
 from trainer import Optimiser, train_model
 from parameters import parser
 from joblib import Parallel, delayed
@@ -33,10 +33,7 @@ def execute_run(i_run):
     
     # instantiate logger, model and optimiser
     logger = MetricLogger(save_dir)
-    if args.gating=='manual':
-        model = Gatednet(args)
-    else:
-        model = Nnet(args)
+    model = ChoiceNet(args)
     optim = Optimiser(args)
 
     # send model to GPU
@@ -56,7 +53,7 @@ if __name__ == "__main__":
 
     # overwrite standard parameters
     args.cuda = False
-    args.ctx_scaling = 2
+    args.ctx_scaling = 5
     args.lrate_sgd=0.03
     args.lrate_hebb=0.03
     args.weight_init=1e-3
@@ -69,7 +66,7 @@ if __name__ == "__main__":
     args.loss_funct = 'rew_on_sigmoid'
 
 
-    sluggish_vals = np.array([1,2,5,10,25,50,100,200,300,500])
+    sluggish_vals = np.arange(0,31)
     for ii,sv in enumerate(sluggish_vals):
         args.ctx_avg_window = sv    
         args.save_dir = 'sluggish_sla_int_sv' + str(sv)
