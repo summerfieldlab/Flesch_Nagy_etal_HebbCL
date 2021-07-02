@@ -86,7 +86,7 @@ if __name__ == "__main__":
     args.loss_funct = 'rew_on_sigmoid'
 
 
-    sluggish_vals = np.arange(1,401,1)
+    sluggish_vals = np.arange(0,101,1)
     results = Parallel(n_jobs=32,verbose=10)(delayed(execute_run)(sv) for sv in sluggish_vals)
     
     with open('fit_sluggishness_results.pkl','wb') as f:

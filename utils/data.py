@@ -205,7 +205,7 @@ def make_dataset(args):
         print('Unknown training schedule parameter')
         
 
-    if args.ctx_avg:    
+    if args.ctx_avg and args.ctx_avg_window>0:    
         data['x_train'][:,-2] = pd.Series(data['x_train'][:,-2]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
         data['x_train'][:,-1] = pd.Series(data['x_train'][:,-1]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
 
