@@ -1,10 +1,7 @@
 ### todo list 
 1. collect individual runs 
-2. new branch: fit to human choice patterns 
-    - import human choice patterns 
-    <!-- - new dataset generator (takes choice mats as input) -->
-    - new loss function & model (sigmoid output, mse)
-    - trial run with interleaved + sluggishness 
+2. new branch: sluggishness 
+    - simulate interleaved network for range of sluggishness parameters (several runs per sluggishness param)
     - raytune: find best hyperparameters for each choicemat (single participants or at grp level)
     - collect multiple runs with best fitting parameters 
 3. analysis notebook

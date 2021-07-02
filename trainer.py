@@ -79,7 +79,8 @@ class Optimiser():
             loss = -1*torch.t(torch.sigmoid(y_hat)) @ reward
         elif self.losstype=='mse':
             loss = torch.mean(torch.pow(reward-y_hat,2)) 
-        
+        elif self.losstype=='rew_on_sigmoid':
+            loss = -1*torch.t(y_hat) @ reward
         return loss
 
 
