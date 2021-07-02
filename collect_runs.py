@@ -18,7 +18,7 @@ args = parser.parse_args()
 # overwrite cuda argument depending on GPU availability
 args.cuda = args.cuda and torch.cuda.is_available()
 
-def train_model(i_run):
+def execute_run(i_run):
     print('run {} / {}'.format(str(i_run),str(args.n_runs)))
         
     # create checkpoint dir 
@@ -54,5 +54,5 @@ def train_model(i_run):
 
 if __name__ == "__main__":
     
-    Parallel(n_jobs=30,verbose=10)(delayed(train_model)(i_run) for i_run in range(args.n_runs))
+    Parallel(n_jobs=30,verbose=10)(delayed(execute_run)(i_run) for i_run in range(args.n_runs))
       
