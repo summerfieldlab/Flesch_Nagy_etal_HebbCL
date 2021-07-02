@@ -21,7 +21,7 @@ args.cuda = args.cuda and torch.cuda.is_available()
 
 if __name__ == "__main__":
     
-    for i_run in range(len(args.n_runs)):
+    for i_run in range(args.n_runs):
         print('run {} / {}'.format(str(i_run),str(args.n_runs)))
         
         # create checkpoint dir 
