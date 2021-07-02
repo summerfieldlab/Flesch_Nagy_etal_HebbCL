@@ -15,6 +15,7 @@ from model import ChoiceNet
 from trainer import Optimiser, train_model
 from parameters import parser
 from joblib import Parallel, delayed
+from scipy.stats import spearmanr
 
 args = parser.parse_args()
 # overwrite cuda argument depending on GPU availability
@@ -59,7 +60,8 @@ def execute_run(sv):
     # compute correlations between human and model choices 
     X_blocked = np.stack((choices_blocked,y_out))
     X_interleaved = np.stack((choices_interleaved,y_out))
-    corrs = [np.corrcoef(X_blocked)[0,1],np.corrcoef(X_interleaved)[0,1]]
+    # corrs = [np.corrcoef(X_blocked)[0,1],np.corrcoef(X_interleaved)[0,1]]
+    corrs = [spearmanr(X_blocked[0,:],X_blocked[1,:])[0],spearmanr(X_interleaved[0,:],X_interleaved[1,:])[0]]
     ## return losses
     losses = [loss_blocked,loss_interleaved]
     return losses + corrs
