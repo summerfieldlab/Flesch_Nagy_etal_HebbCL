@@ -64,7 +64,7 @@ def execute_run(sv):
     corrs = [spearmanr(X_blocked[0,:],X_blocked[1,:])[0],spearmanr(X_interleaved[0,:],X_interleaved[1,:])[0]]
     ## return losses
     losses = [loss_blocked,loss_interleaved]
-    return losses + corrs
+    return losses + corrs + [y_out]
 
     
 
