@@ -55,9 +55,14 @@ def execute_run(sv):
     y_out = np.array(logger.all_y_out).squeeze()[1,:]
     loss_blocked = np.mean(np.power(choices_blocked-y_out,2))
     loss_interleaved = np.mean(np.power(choices_interleaved-y_out,2))
+
+    # compute correlations between human and model choices 
+    X_blocked = np.stack((choices_blocked,y_out))
+    X_interleaved = np.stack((choices_interleaved,y_out))
+    corrs = [np.corrcoef(X_blocked)[0,1],np.corrcoef(X_interleaved)[0,1]]
     ## return losses
     losses = [loss_blocked,loss_interleaved]
-    return losses    
+    return losses + corrs
 
     
 
@@ -80,8 +85,8 @@ if __name__ == "__main__":
 
 
     sluggish_vals = np.arange(1,401,1)
-    losses = Parallel(n_jobs=32,verbose=10)(delayed(execute_run)(sv) for sv in sluggish_vals)
+    results = Parallel(n_jobs=32,verbose=10)(delayed(execute_run)(sv) for sv in sluggish_vals)
     
     with open('fit_sluggishness_results.pkl','wb') as f:
-        pickle.dump(losses,f)
+        pickle.dump(results,f)
    
