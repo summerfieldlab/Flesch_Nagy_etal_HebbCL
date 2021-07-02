@@ -15,7 +15,6 @@ from utils.data import make_dataset
 from utils.nnet import get_device, from_gpu
 from utils.eval import compute_accuracy
 
-from logger import MetricLogger
 from model import Nnet, Gatednet
 from trainer import Optimiser
 from parameters import parser 
