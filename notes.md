@@ -1,4 +1,13 @@
-### Best fitting parameters
+
+### 1. random search
+<!-- - parallel processing toolbox for HP search (ray tune) -->
+<!-- https://docs.ray.io/en/master/tune/examples/tune_basic_example.html
+https://docs.ray.io/en/master/ray-overview/index.html
+https://docs.ray.io/en/master/tune/api_docs/schedulers.html
+
+https://docs.ray.io/en/master/tune/tutorials/tune-tutorial.html
+https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-cifar.html -->
+
 
 **Baseline:**  
 - blocked: python main.py --gating=None --cuda=False  --ctx_scaling=8 --lrate_sgd=0.01 --centering=False --weight_init=1e-3

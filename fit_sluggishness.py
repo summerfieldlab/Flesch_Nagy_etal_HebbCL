@@ -11,7 +11,7 @@ from utils.data import make_dataset
 from utils.nnet import get_device
 from scipy.io import loadmat
 from logger import MetricLogger
-from model import Gatednet, Nnet
+from model import ChoiceNet
 from trainer import Optimiser, train_model
 from parameters import parser
 from joblib import Parallel, delayed
@@ -42,10 +42,7 @@ def execute_run(sv):
     # instantiate logger, model and optimiser
     save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     logger = MetricLogger(save_dir)
-    if args.gating=='manual':
-        model = Gatednet(args)
-    else:
-        model = Nnet(args)
+    model = ChoiceNet(args)
     optim = Optimiser(args)
 
     # send model to GPU
