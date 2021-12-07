@@ -1,10 +1,6 @@
 ### todo list 
 1. collect individual runs 
-2. new branch: sluggishness 
-    <!-- - simulate interleaved network for range of sluggishness parameters (several runs per sluggishness param) -->
-    <!-- - gridsearch: find best hyperparameters for each choicemat (single participants or at grp level) -->
-    - look at results of sluggishness simu
-    - sluggishness: collect multiple runs with best fitting parameters 
+2. sluggishness: implement as EMA
 3. analysis notebook
     - import runs, create alldata dict 
     - tbc
@@ -32,9 +28,4 @@
 -----------------
 
 
-
-### code refactoring
-- Optimiser into optimiser.py
-- train_model into utils.trainer.py ?
-- logger inheritance: loggerBase, loggerMLP, loggerCNN ?
 
