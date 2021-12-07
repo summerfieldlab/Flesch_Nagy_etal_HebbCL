@@ -36,7 +36,7 @@ parser.add_argument('--loss_funct',default='reward',type=str,help='loss function
 
 # training parameters 
 parser.add_argument('--cuda', default=False, type=boolean_string, help='run model on GPU')
-parser.add_argument('--n_runs', default=20, type=int, help='number of independent training runs')
+parser.add_argument('--n_runs', default=50, type=int, help='number of independent training runs')
 parser.add_argument('--n_episodes', default=200, type=int, help='number of training episodes')
 parser.add_argument('--perform_sgd',default=True, type=boolean_string, help='turn supervised update on/off')
 parser.add_argument('--perform_hebb',default=True, type=boolean_string, help='turn hebbian update on/off')
