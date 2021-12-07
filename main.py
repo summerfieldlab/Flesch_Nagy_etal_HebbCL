@@ -6,7 +6,7 @@ from utils.data import make_dataset
 from utils.nnet import get_device
 
 from logger import MetricLogger
-from model import Gatednet, Nnet
+from model import Gatednet, Nnet, ScaledNet
 from trainer import Optimiser, train_model
 from parameters import parser
 
@@ -19,7 +19,7 @@ args.cuda = args.cuda and torch.cuda.is_available()
 if __name__ == "__main__":
     
     # create checkpoint dir 
-    save_dir = Path("checkpoints") / datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    save_dir = Path("checkpoints") / 'quick_test'#datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     
 
     # get (cuda) device
@@ -32,6 +32,8 @@ if __name__ == "__main__":
     logger = MetricLogger(save_dir)
     if args.gating=='manual':
         model = Gatednet(args)
+    elif args.ctx_weights==True:
+        model = ScaledNet(args)
     else:
         model = Nnet(args)
     optim = Optimiser(args)
@@ -46,5 +48,5 @@ if __name__ == "__main__":
 
     # save results 
     if args.save_results:
-        save_dir.mkdir(parents=True)
+        save_dir.mkdir(parents=True,exist_ok=True)
         logger.save(model)

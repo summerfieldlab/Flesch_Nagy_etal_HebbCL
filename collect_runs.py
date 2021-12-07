@@ -49,10 +49,10 @@ def execute_run(i_run):
 
     # save results 
     if args.save_results:
-        save_dir.mkdir(parents=True)
+        save_dir.mkdir(parents=True,exist_ok=True)
         logger.save(model)
 
 if __name__ == "__main__":
     
-    Parallel(n_jobs=30,verbose=10)(delayed(execute_run)(i_run) for i_run in range(args.n_runs))
+    Parallel(n_jobs=6,verbose=10)(delayed(execute_run)(i_run) for i_run in range(args.n_runs))
       

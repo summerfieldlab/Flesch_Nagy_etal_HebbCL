@@ -24,7 +24,8 @@ parser.add_argument('--centering',default='True', type=boolean_string,help='cent
 parser.add_argument('--n_features',default=27, type=int, help='number of stimulus units')
 parser.add_argument('--n_out',default=1, type=int, help='number of output units')
 parser.add_argument('--n_hidden',default=100, type=int, help='number of hidden units')
-parser.add_argument('--weight_init',default=1e-5,type=float,help='initial weight scale')
+parser.add_argument('--weight_init',default=1e-2,type=float,help='initial input weight scale')
+parser.add_argument('--ctx_w_init',default=0.5,type=float,help='initial context weight scale')
 
 # optimiser parameters
 parser.add_argument('--lrate_sgd', default=1e-2,type=float, help='learning rate for SGD')
@@ -35,12 +36,13 @@ parser.add_argument('--loss_funct',default='reward',type=str,help='loss function
 
 # training parameters 
 parser.add_argument('--cuda', default=False, type=boolean_string, help='run model on GPU')
-parser.add_argument('--n_runs', default=30, type=int, help='number of independent training runs')
+parser.add_argument('--n_runs', default=20, type=int, help='number of independent training runs')
 parser.add_argument('--n_episodes', default=200, type=int, help='number of training episodes')
 parser.add_argument('--perform_sgd',default=True, type=boolean_string, help='turn supervised update on/off')
 parser.add_argument('--perform_hebb',default=True, type=boolean_string, help='turn hebbian update on/off')
 parser.add_argument('--training_schedule',default='blocked',help='either interleaved or blocked')
 parser.add_argument('--log-interval',default=50,type=int,help='log very n training steps')
+parser.add_argument('--ctx_weights',default=False,type=boolean_string, help='scale context weights (yes/no)')
 
 # io params
 parser.add_argument('--verbose',default=True, type=boolean_string, help='verbose mode, print all logs to stdout')

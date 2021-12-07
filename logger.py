@@ -68,7 +68,7 @@ class MetricLogger():
             compute_relchange(self.w_h0, from_gpu(model.W_h)))
         self.w_relchange_yh.append(
             compute_relchange(self.w_y0, from_gpu(model.W_o)))
-        self.w_context_corr.append(np.corrcoef(model.W_h[-2:, :])[0, 1])
+        self.w_context_corr.append(np.corrcoef(from_gpu(model.W_h)[-2:, :])[0, 1])
 
         # sparsity
         model.forward(x_both)
@@ -109,7 +109,7 @@ class MetricLogger():
 
         results['w_relchange_hxs'] = np.asarray(self.w_relchange_hxs)
         results['w_relchange_yh'] = np.asarray(self.w_relchange_yh)
-
+        results['w_context_corr'] = np.asarray(self.w_context_corr)
         results['n_dead'] = np.asarray(self.n_dead)
         results['n_local'] = np.asarray(self.n_local)
         results['n_only_a'] = np.asarray(self.n_only_a)

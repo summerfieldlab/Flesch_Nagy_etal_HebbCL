@@ -43,7 +43,7 @@ def train_nnet_with_ray(config):
         args.perform_hebb = True if config['sla']==1 else False
         args.hebb_normaliser = config['normaliser']
         args.lrate_hebb = config['lrate_hebb']
-        args.n_episodes = config['n_episodes']
+        
     elif args.gating=='manual':
         args.lrate_sgd = config['lrate_sgd']
         args.n_episodes = config['n_episodes']        

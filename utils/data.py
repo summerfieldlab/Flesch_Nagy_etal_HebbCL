@@ -169,6 +169,12 @@ def make_dataset(args):
     y_task_b = y_task_b[:,np.newaxis]
     l_task_b = (y_task_b>0).astype('int')
 
+    if args.ctx_weights==True:
+        x_task_a[:,:25] /= np.linalg.norm(x_task_a[:,:25])
+        x_task_a[:,25:] /= np.linalg.norm(x_task_a[:,25:])
+        x_task_b[:,:25] /= np.linalg.norm(x_task_b[:,:25])
+        x_task_b[:,25:] /= np.linalg.norm(x_task_b[:,25:])
+        
     x_in = np.concatenate((x_task_a,x_task_b),axis=0)
     y_rew = np.concatenate((y_task_a,y_task_b), axis=0)
     y_true = np.concatenate((l_task_a,l_task_b), axis=0)
