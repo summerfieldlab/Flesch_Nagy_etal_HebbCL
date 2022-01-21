@@ -1,9 +1,9 @@
 '''
 collects multiple runs per simulation
 '''
-import torch 
-from pathlib import Path 
-import datetime 
+import torch
+from pathlib import Path
+import datetime
 
 from utils.data import make_dataset
 from utils.nnet import get_device
@@ -18,23 +18,23 @@ args = parser.parse_args()
 # overwrite cuda argument depending on GPU availability
 args.cuda = args.cuda and torch.cuda.is_available()
 
+
 def execute_run(i_run):
-    print('run {} / {}'.format(str(i_run),str(args.n_runs)))
-        
-    # create checkpoint dir 
+    print('run {} / {}'.format(str(i_run), str(args.n_runs)))
+
+    # create checkpoint dir
     run_name = 'run_'+str(i_run)
     save_dir = Path("checkpoints") / args.save_dir / run_name
-    
 
     # get (cuda) device
-    args.device,_ = get_device(args.cuda)
-    
+    args.device, _ = get_device(args.cuda)
+
     # get dataset
     dataset = make_dataset(args)
-    
+
     # instantiate logger, model and optimiser
     logger = MetricLogger(save_dir)
-    if args.gating=='manual':
+    if args.gating == 'manual':
         model = Gatednet(args)
     else:
         model = Nnet(args)
@@ -44,15 +44,15 @@ def execute_run(i_run):
     model = model.to(args.device)
 
     # train model
-    train_model(args, model,optim,dataset, logger)
-    
+    train_model(args, model, optim, dataset, logger)
 
-    # save results 
+    # save results
     if args.save_results:
-        save_dir.mkdir(parents=True,exist_ok=True)
+        save_dir.mkdir(parents=True, exist_ok=True)
         logger.save(model)
 
+
 if __name__ == "__main__":
-    
-    Parallel(n_jobs=6,verbose=10)(delayed(execute_run)(i_run) for i_run in range(args.n_runs))
-      
+
+    Parallel(n_jobs=6, verbose=10)(delayed(execute_run)(i_run)
+                                   for i_run in range(args.n_runs))

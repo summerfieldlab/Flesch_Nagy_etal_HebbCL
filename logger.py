@@ -8,8 +8,9 @@ from utils.eval import *
 
 class MetricLogger():
     def __init__(self, save_dir):
-        self.save_log = save_dir
+        self.save_log = save_dir        
 
+        self.scale_noise = [0.01,0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.5,2]
         # performance metrics:
         self.losses_total = []
         self.losses_1st = []
@@ -17,6 +18,9 @@ class MetricLogger():
         self.acc_total = []
         self.acc_1st = []
         self.acc_2nd = []
+        self.acc_1st_noise = []
+        self.acc_2nd_noise = []
+        
 
         # layer-wise activity patterns :
         self.all_x_hidden = []
@@ -62,6 +66,16 @@ class MetricLogger():
         self.acc_total.append(compute_accuracy(r_both, model(x_both)))
         self.acc_1st.append(compute_accuracy(r_a, model(x_a)))
         self.acc_2nd.append(compute_accuracy(r_b, model(x_b)))
+        accs_noise_1st = []
+        accs_noise_2nd = []
+        for noiselvl in self.scale_noise:
+            y_n = model(x_a+torch.from_numpy(noiselvl*np.random.randn(25,27)).float())
+            accs_noise_1st.append(compute_accuracy(r_a,y_n))
+            y_n = model(x_b+torch.from_numpy(noiselvl*np.random.randn(25,27)).float())
+            accs_noise_2nd.append(compute_accuracy(r_b,y_n))
+
+        self.acc_1st_noise.append(accs_noise_1st)
+        self.acc_2nd_noise.append(accs_noise_2nd)
 
         # weight change and correlation
         self.w_relchange_hxs.append(
@@ -102,6 +116,8 @@ class MetricLogger():
         results['acc_total'] = np.asarray(self.acc_total)
         results['acc_1st'] = np.asarray(self.acc_1st)
         results['acc_2nd'] = np.asarray(self.acc_2nd)
+        results['acc_1st_noise'] = np.asarray(self.acc_1st_noise)
+        results['acc_2nd_noise'] = np.asarray(self.acc_2nd_noise)
 
         results['all_x_hidden'] = np.asarray(self.all_x_hidden)
         results['all_y_hidden'] = np.asarray(self.all_y_hidden)

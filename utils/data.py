@@ -222,17 +222,9 @@ def make_dataset(args):
         if args.ctx_avg_type=='sma':             
             data['x_train'][:,-2] = pd.Series(data['x_train'][:,-2]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
             data['x_train'][:,-1] = pd.Series(data['x_train'][:,-1]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
-            data['x_task_a'][:,-2] = pd.Series(data['x_task_a'][:,-2]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
-            data['x_task_a'][:,-1] = pd.Series(data['x_task_a'][:,-1]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
-            data['x_task_b'][:,-2] = pd.Series(data['x_trask_b'][:,-2]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
-            data['x_task_b'][:,-1] = pd.Series(data['x_trask_b'][:,-1]).rolling(window=args.ctx_avg_window, min_periods=1).mean()
         elif args.ctx_avg_type=='ema':
             data['x_train'][:,-2] = pd.Series(data['x_train'][:,-2]).ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1).mean()
             data['x_train'][:,-1] = pd.Series(data['x_train'][:,-1]).ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1).mean()
-            data['x_task_a'][:,-2] = pd.Series(data['x_task_a'][:,-2]).ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1).mean()
-            data['x_task_a'][:,-1] = pd.Series(data['x_task_a'][:,-1]).ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1).mean()
-            data['x_task_b'][:,-2] = pd.Series(data['x_task_b'][:,-2]).ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1).mean()
-            data['x_task_b'][:,-1] = pd.Series(data['x_task_b'][:,-1]).ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1).mean()
 
     return data
 
