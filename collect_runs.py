@@ -1,6 +1,6 @@
-'''
+"""
 collects multiple runs per simulation
-'''
+"""
 import torch
 from pathlib import Path
 import datetime
@@ -20,10 +20,10 @@ args.cuda = args.cuda and torch.cuda.is_available()
 
 
 def execute_run(i_run):
-    print('run {} / {}'.format(str(i_run), str(args.n_runs)))
+    print("run {} / {}".format(str(i_run), str(args.n_runs)))
 
     # create checkpoint dir
-    run_name = 'run_'+str(i_run)
+    run_name = "run_" + str(i_run)
     save_dir = Path("checkpoints") / args.save_dir / run_name
 
     # get (cuda) device
@@ -34,7 +34,7 @@ def execute_run(i_run):
 
     # instantiate logger, model and optimiser
     logger = MetricLogger(save_dir)
-    if args.gating == 'manual':
+    if args.gating == "manual":
         model = Gatednet(args)
     else:
         model = Nnet(args)
@@ -54,5 +54,6 @@ def execute_run(i_run):
 
 if __name__ == "__main__":
 
-    Parallel(n_jobs=6, verbose=10)(delayed(execute_run)(i_run)
-                                   for i_run in range(args.n_runs))
+    Parallel(n_jobs=6, verbose=10)(
+        delayed(execute_run)(i_run) for i_run in range(args.n_runs)
+    )

@@ -1,3 +1,4 @@
+from ast import Assert
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -178,21 +179,25 @@ def make_dataset(args):
     x_in = np.concatenate((x_task_a,x_task_b),axis=0)
     y_rew = np.concatenate((y_task_a,y_task_b), axis=0)
     y_true = np.concatenate((l_task_a,l_task_b), axis=0)
+    f_all = np.concatenate((f_task_a,f_task_b),axis=0)
 
     # define datasets (duplicates for shuffling)
     data = {}
     data['x_task_a'] = x_task_a
     data['y_task_a'] = y_task_a
     data['l_task_a'] = l_task_a
+    data['f_task_a'] = f_task_a
 
     data['x_task_b'] = x_task_b
     data['y_task_b'] = y_task_b
     data['l_task_b'] = l_task_b
+    data['f_task_b'] = f_task_b
 
     data['x_all'] = x_in
     data['y_all'] = y_rew
     data['l_all'] = y_true
-
+    data['f_all'] = f_all
+   
     if args.training_schedule == 'interleaved':
         data['x_train'] = np.vstack(tuple([shuffle(data['x_all'],random_state = i+random_state) for i in range(args.n_episodes)]))
         data['y_train'] = np.vstack(tuple([shuffle(data['y_all'],random_state = i+random_state) for i in range(args.n_episodes)]))
