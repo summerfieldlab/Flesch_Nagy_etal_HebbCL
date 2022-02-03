@@ -5,9 +5,181 @@ import math
 from utils.nnet import from_gpu
 from scipy.spatial.distance import squareform, pdist
 from scipy.stats import zscore, multivariate_normal
+from scipy.optimize import minimize
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
 from sklearn.utils import shuffle
 import pandas as pd
+
+
+def sigmoid(x, L, k, x0):
+    """
+    sigmoidal nonlinearity with three free parameters (lapse, slope, offset)
+    """
+
+    y = L + (1 - L * 2) / (1.0 + np.exp(-k * (x - x0)))
+    return y
+
+
+def scalar_projection(X, phi):
+    """
+    performs scalar projection of x onto y by angle phi
+    """
+    phi_bound = np.deg2rad(phi)
+    phi_ort = phi_bound - np.deg2rad(90)
+    y = X @ np.array([np.cos(phi_ort), np.sin(phi_ort)]).T
+    return y
+
+
+def angular_distance(target_ang, source_ang):
+    target_ang = np.deg2rad(target_ang)
+    source_ang = np.deg2rad(source_ang)
+    return np.rad2deg(
+        np.arctan2(np.sin(target_ang - source_ang), np.cos(target_ang - source_ang))
+    )
+
+
+def angular_bias(ref, est, task="a"):
+    bias = angular_distance(est, ref)
+    if task == "a":
+        bias = -bias
+    return bias
+
+
+def objective_function(X, y_true):
+    def loss(theta):
+        return -np.sum(np.log(1.0 - np.abs(y_true - choice_model(X, theta)) + 1e-5))
+
+    return loss
+
+
+def choice_model(X, theta):
+    """
+    generates choice probability matrix
+    free parameters: orientation of bound, slope, offset and lapse rate of sigmoidal transducer
+    """
+    # projection task a
+    X1 = scalar_projection(X, theta[0])
+    # projection task b
+    X2 = scalar_projection(X, theta[1])
+
+    # inputs to model
+    X_in = np.concatenate((X1, X2))
+
+    # pass through transducer:
+    y_hat = sigmoid(X_in, theta[2], theta[3], theta[4])
+
+    # return outputs
+    return y_hat
+
+
+def fit_choice_model(y_true):
+    """
+    fits choice model to data, using Nelder-Mead or L-BFGS-B algorithm
+    """
+    a, b = np.meshgrid(np.arange(-2, 3), np.arange(-2, 3))
+    a = a.flatten()
+    b = b.flatten()
+    X = np.stack((a, b)).T
+    theta_init = [90, 180, 0, 10, 0]
+    theta_bounds = ((0, 360), (0, 360), (0, 0.5), (0, 20), (-1, 1))
+    results = minimize(
+        objective_function(X, y_true),
+        theta_init,
+        bounds=theta_bounds,
+        method="L-BFGS-B",
+    )
+
+    # # theta_initbounds = ((80, 100), (170, 190), (0, 0.1), (9.9, 10), (-0.02, 0.02))
+    # thetas = []
+    # for i in range(10):
+    #     # theta_init = [
+    #     #     np.round(np.random.uniform(a[0], a[1]), 2) for a in theta_initbounds
+    #     # ]
+    #     results = minimize(
+    #         objective_function(X, y_true),
+    #         theta_init,
+    #         bounds=theta_bounds,
+    #         method="L-BFGS-B",
+    #     )
+    #     thetas.append(results.x)
+
+    # return np.mean(np.array(thetas), 0)
+    return results.x
+
+
+def fit_model_to_subjects(choicemats):
+    """
+    wrapper for fit_choice_model
+    loops over subjects
+    """
+    tasks = ["task_a", "task_b"]
+
+    thetas = {"bias_a": [], "bias_b": [], "lapse": [], "slope": [], "offset": []}
+    for sub in range(len(choicemats[tasks[0]])):
+        cmat_a = choicemats[tasks[0]][sub, :, :]
+        cmat_b = choicemats[tasks[1]][sub, :, :]
+        cmats = np.concatenate((cmat_a.flatten(), cmat_b.flatten()))
+        theta_hat = fit_choice_model(cmats)
+        theta_hat[0] = angular_bias(theta_hat[0], 90, task="a")
+        theta_hat[1] = angular_bias(theta_hat[1], 180, task="b")
+        for idx, k in enumerate(thetas.keys()):
+            thetas[k].append(theta_hat[idx])
+    for k in thetas.keys():
+        thetas[k] = np.asarray(thetas[k])
+    thetas["bias"] = np.stack((thetas["bias_a"], thetas["bias_b"]), axis=1).mean(1)
+    return thetas
+
+
+def compute_behav_taskfact(cmats_dict: dict) -> dict:
+    """performs regression to compute behavioural task factorisation
+
+    Args:
+        cmats_dict (dict): dictionary with choice matrices
+
+    Returns:
+        dict: dictionary with estimated beta coefficients
+    """
+    _, dmat, _ = gen_behav_models()
+    betas_dict = {}
+    betas = []
+    for r in np.arange(0, len(cmats_dict["int_a"])):
+        choices = np.concatenate(
+            (
+                cmats_dict["int_a"][r, :, :].flatten(),
+                cmats_dict["int_b"][r, :, :].flatten(),
+            ),
+            axis=0,
+        )[:, np.newaxis]
+        assert choices.shape == (50, 1)
+        yrdm = squareform(pdist(choices))
+
+        y = zscore(yrdm[np.tril_indices(50, k=-1)]).flatten()
+        assert len(y) == 1225
+        lr = LinearRegression()
+        lr.fit(dmat, y)
+        betas.append(lr.coef_)
+    betas_dict["int"] = np.array(betas)
+
+    betas = []
+    for r in np.arange(0, len(cmats_dict["bloc_a"])):
+        choices = np.concatenate(
+            (
+                cmats_dict["bloc_a"][r, :, :].flatten(),
+                cmats_dict["bloc_b"][r, :, :].flatten(),
+            ),
+            axis=0,
+        )[:, np.newaxis]
+        assert choices.shape == (50, 1)
+        yrdm = squareform(pdist(choices))
+
+        y = zscore(yrdm[np.tril_indices(50, k=-1)]).flatten()
+        assert len(y) == 1225
+        lr = LinearRegression()
+        lr.fit(dmat, y)
+        betas.append(lr.coef_)
+    betas_dict["bloc"] = np.array(betas)
+    return betas_dict
 
 
 def make_dmat(features):
@@ -222,6 +394,85 @@ def mk_block_wctx(context, do_shuffle, c_scaling=1):
     return x1, reward, feature_vals
 
 
+def gen_modelrdms(ctx_offset=1):
+    models = []
+    ctx = np.concatenate(
+        (ctx_offset * np.ones((25, 1)), np.zeros((25, 1))), axis=0
+    ).reshape(50, 1)
+    ## model rdms:
+    a, b = np.meshgrid(np.linspace(-2, 2, 5), np.linspace(-2, 2, 5))
+    # grid model
+    gridm = np.concatenate(
+        (a.flatten()[np.newaxis, :], b.flatten()[np.newaxis, :]), axis=0
+    ).T
+    gridm = np.concatenate((np.tile(gridm, (2, 1)), ctx), axis=1)
+    models.append(squareform(pdist(gridm, metric="euclidean")))
+
+    # # rotated grid model
+    # gridm = np.concatenate((a.flatten()[np.newaxis,:],b.flatten()[np.newaxis,:]),axis=0).T
+    # gridm[25:, :] = gridm[25:, :] @ np.array([[np.cos(np.deg2rad(270)), -np.sin(np.deg2rad(270))], [np.sin(np.deg2rad(270)), np.cos(np.deg2rad(270))]])
+    # gridm = np.concatenate((np.tile(gridm,(2,1)),ctx),axis=1)
+    # models.append(squareform(pdist(gridm,metric='euclidean')))
+
+    # orthogonal model
+    orthm = np.concatenate(
+        (
+            np.concatenate((a.flatten()[np.newaxis, :], np.zeros((1, 25))), axis=0).T,
+            np.concatenate((np.zeros((1, 25)), b.flatten()[np.newaxis, :]), axis=0).T,
+        ),
+        axis=0,
+    )
+    orthm = np.concatenate((orthm, ctx), axis=1)
+    models.append(squareform(pdist(orthm, metric="euclidean")))
+
+    # # parallel model
+    # a = a.flatten()
+    # b = b.flatten()
+
+    # ta = np.stack((a,np.zeros((25))),axis=1)
+    # tb = np.stack((np.zeros(25),b),axis=1)
+    # theta = np.radians(-90)
+    # c, s = np.cos(theta), np.sin(theta)
+    # R = np.array(((c, -s), (s, c)))
+
+    # parm = np.concatenate((ta.dot(R),tb),axis=0)
+    # parm = np.concatenate((parm,ctx),axis=1)
+    # models.append(squareform(pdist(parm,metric='euclidean')))
+
+    # # only branchiness model
+    # obm = np.concatenate((a[:,np.newaxis],a[:,np.newaxis]),axis=0)
+
+    # models.append(squareform(pdist(obm,metric='euclidean')))
+
+    # # only leafiness model
+    # olm = np.concatenate((b[:,np.newaxis],b[:,np.newaxis]),axis=0)
+    # models.append(squareform(pdist(olm,metric='euclidean')))
+
+    # diagonal model
+    a = a.flatten()
+    b = b.flatten()
+    ta = np.stack((a, b), axis=1)
+    tb = np.stack((a, b), axis=1)
+    theta = np.radians(45)
+    c, s = np.cos(theta), np.sin(theta)
+    # R = np.array(((c, -s), (s, c)))
+    r = np.array([(c, s)]).T
+    assert r.shape == (2, 1)
+
+    diagm = np.concatenate((ta @ r @ r.T, tb @ r @ r.T), axis=0)
+    diagm = np.concatenate((diagm, ctx), axis=1)
+    models.append(squareform(pdist(diagm, metric="euclidean")))
+
+    # construct design matrix
+    dmat = np.asarray(
+        [zscore(rdm[np.tril_indices(50, k=-1)].flatten()) for rdm in models]
+    ).T
+
+    rdms = np.asarray(models)
+
+    return rdms, dmat
+
+
 def make_dataset(
     ctx_scaling=1,
     training_schedule="blocked",
@@ -375,3 +626,24 @@ def make_dataset(
         data["x_all"] = sc.transform(data["x_all"])
 
     return data
+
+
+def make_dmat(features):
+    """creates design matrix for task selectivity analysis
+
+    Args:
+        features (np array): n-x-2 matrix of feature values
+
+    Returns:
+        dmat: design matrix with z-scored predictors, one per feature & task
+    """
+    dmat = np.zeros((50, 4))
+    # irrel in task a
+    dmat[:25, 0] = features[:25, 0]
+    # rel in task a
+    dmat[:25, 1] = features[:25, 1]
+    # rel in task b
+    dmat[25:, 2] = features[25:, 0]
+    # irrel in task b
+    dmat[25:, 3] = features[25:, 1]
+    return zscore(dmat, axis=0, ddof=1)
