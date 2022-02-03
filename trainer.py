@@ -3,6 +3,8 @@ import torch
 
 
 class Optimiser:
+    """custom optimiser for SGD + Hebbian training updates"""
+
     def __init__(self, args):
         self.lrate_sgd = args.lrate_sgd
         self.lrate_hebb = args.lrate_hebb
@@ -38,6 +40,18 @@ class Optimiser:
                 if theta.requires_grad:
                     theta -= theta.grad * self.lrate_sgd
             model.zero_grad()
+
+    def oja_update(self, model, x_in):
+        """
+        applies oja's rule to context weights
+        """
+        x_in = x_in.reshape(27, 1)[-2:, :]
+        with torch.no_grad():
+            for i in range(model.W_h.shape[1]):
+                y = torch.t(model.W_h[-2:, i]) @ x_in
+                dw = self.lrate_hebb * y * (x_in - y @ torch.t(model.W_h[-2:, i]))
+                model.W_h[-2:, i] += dw
+                model.zero_grad()
 
     def sla_update(self, model, x_in):
         """
