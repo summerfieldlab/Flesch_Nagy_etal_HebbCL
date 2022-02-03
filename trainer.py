@@ -24,6 +24,8 @@ class Optimiser:
                 self.sla_update(model, x_in)
             elif self.gating == "GHA":
                 self.gha_update(model, x_in)
+            elif self.gating == "oja":
+                self.oja_update(model, x_in)
 
     def sgd_update(self, model, x_in, r_target):
         """
