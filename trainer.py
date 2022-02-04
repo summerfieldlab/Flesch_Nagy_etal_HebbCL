@@ -3,6 +3,8 @@ import torch
 
 
 class Optimiser:
+    """custom optimiser for SGD + Hebbian training updates"""
+
     def __init__(self, args):
         self.lrate_sgd = args.lrate_sgd
         self.lrate_hebb = args.lrate_hebb
@@ -22,6 +24,8 @@ class Optimiser:
                 self.sla_update(model, x_in)
             elif self.gating == "GHA":
                 self.gha_update(model, x_in)
+            elif self.gating == "oja":
+                self.oja_update(model, x_in)
 
     def sgd_update(self, model, x_in, r_target):
         """
@@ -38,6 +42,33 @@ class Optimiser:
                 if theta.requires_grad:
                     theta -= theta.grad * self.lrate_sgd
             model.zero_grad()
+
+    def oja_update(self, model, x_in):
+        """
+        applies faster oja's rule to context weights (slowoja, but vectorised)
+        """
+        x_in = x_in[-2:]
+        x_vec = x_in.repeat(100).reshape(-1, 2)
+
+        with torch.no_grad():
+            y = torch.t(model.W_h[-2:, :]) @ x_in
+            y = y.repeat(2).reshape(2, -1).T
+            dW = self.lrate_hebb * y * (x_vec - y * torch.t(model.W_h[-2:, :]))
+            model.W_h[-2:, :] += dW.T
+            model.zero_grad()
+
+    def slowoja_update(self, model, x_in):
+        """
+        applies oja's rule to context weights
+        """
+        x_in = x_in[-2:]
+        with torch.no_grad():
+            for i in range(model.W_h.shape[1]):
+                y = torch.t(model.W_h[-2:, i]) @ x_in
+                dw = self.lrate_hebb * y * (x_in - y * model.W_h[-2:, i])
+
+                model.W_h[-2:, i] += dw
+                model.zero_grad()
 
     def sla_update(self, model, x_in):
         """
@@ -142,7 +173,7 @@ def train_model(args, model, optim, data, logger):
                 )
                 print(
                     "... n_a: {:d} n_b: {:d}".format(
-                        logger.n_only_a[-1], logger.n_only_b[-1]
+                        logger.n_only_a_regr[-1], logger.n_only_b_regr[-1]
                     )
                 )
 

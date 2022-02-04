@@ -62,7 +62,9 @@ parser.add_argument(
     type=float,
     help="normalising const. for hebbian update",
 )
-parser.add_argument("--gating", default="SLA", help="any of: None, manual, GHA, SLA")
+parser.add_argument(
+    "--gating", default="SLA", help="any of: None, manual, GHA, SLA, oja"
+)
 parser.add_argument(
     "--loss_funct",
     default="reward",

@@ -417,8 +417,8 @@ def gen_modelrdms(ctx_offset=1):
     # orthogonal model
     orthm = np.concatenate(
         (
-            np.concatenate((a.flatten()[np.newaxis, :], np.zeros((1, 25))), axis=0).T,
-            np.concatenate((np.zeros((1, 25)), b.flatten()[np.newaxis, :]), axis=0).T,
+            np.concatenate((b.flatten()[np.newaxis, :], np.zeros((1, 25))), axis=0).T,
+            np.concatenate((np.zeros((1, 25)), a.flatten()[np.newaxis, :]), axis=0).T,
         ),
         axis=0,
     )
