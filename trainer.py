@@ -164,7 +164,7 @@ def train_model(
     args: argparse.ArgumentParser,
     model: torch.nn.Module,
     optim: Optimiser,
-    data: Dict[np.array],
+    data: Dict[str, np.array],
     logger: logger.MetricLogger,
 ):
     """trains a neural netowkr
@@ -173,7 +173,7 @@ def train_model(
         args (argparse.ArgumentParser): training parameters
         model (torch.nn.Module): feed forward neural network
         optim (Optimiser): optimiser that performs the training procedure
-        data (Dict[np.array]): dictionary with training data
+        data (Dict[str, np.array]): dictionary with training data
         logger (logger.MetricLogger): a metric logger to keep track of training progress
     """
 
