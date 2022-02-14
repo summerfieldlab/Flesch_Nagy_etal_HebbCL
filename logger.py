@@ -1,15 +1,26 @@
 import time
+from typing import Tuple
+import torch
 import pickle
+import pathlib
 import numpy as np
 import statsmodels.api as sm
 from scipy.stats import zscore
+import trainer
 
 from utils.nnet import from_gpu
 from utils.eval import *
 
 
 class MetricLogger:
-    def __init__(self, save_dir):
+    """logs experiment results"""
+
+    def __init__(self, save_dir: pathlib.Path):
+        """Constructor for metric logger
+
+        Args:
+            save_dir (pathlib.Path): path to save directory
+        """
         self.save_log = save_dir
 
         self.scale_noise = [
@@ -66,17 +77,39 @@ class MetricLogger:
         # misc:
         self.record_time = time.time()
 
-    def log_init(self, model):
-        """
-        log initial values (such as weights after random init)
+    def log_init(self, model: torch.nn.Module):
+        """log initial values (such as weights after random init)
 
+        Args:
+            model (torch.nn.Module): feedforward neural network
         """
         self.w_h0 = from_gpu(model.W_h)
         self.w_y0 = from_gpu(model.W_o)
 
-    def log_step(self, model, optim, x_a, x_b, x_both, r_a, r_b, r_both, f_both):
-        """
-        log a single training step
+    def log_step(
+        self,
+        model: torch.nn.Module,
+        optim: trainer.Optimiser,
+        x_a: torch.Tensor,
+        x_b: torch.Tensor,
+        x_both: torch.Tensor,
+        r_a: torch.Tensor,
+        r_b: torch.Tensor,
+        r_both: torch.Tensor,
+        f_both: torch.Tensor,
+    ):
+        """log a single training step
+
+        Args:
+            model (torch.nn.Module): feedfoward neural network
+            optim (trainer.Optimiser): optimiser to perform SGD/Hebb
+            x_a (torch.Tensor): test inputs task A
+            x_b (torch.Tensor): test inputs task B
+            x_both (torch.Tensor): test inputs both
+            r_a (torch.Tensor): rewards, task A
+            r_b (torch.Tensor): rewards task B
+            r_both (torch.Tensor): rewards, both tasks
+            f_both (torch.Tensor): feature values both tasks
         """
         # accuracy/ loss
         self.losses_total.append(
@@ -89,6 +122,7 @@ class MetricLogger:
         self.acc_2nd.append(compute_accuracy(r_b, model(x_b)))
         accs_noise_1st = []
         accs_noise_2nd = []
+
         for noiselvl in self.scale_noise:
             y_n = model(
                 x_a + torch.from_numpy(noiselvl * np.random.randn(25, 27)).float()
@@ -126,9 +160,12 @@ class MetricLogger:
         self.n_only_a_regr.append(n_ta)
         self.n_only_b_regr.append(n_tb)
 
-    def log_patterns(self, model, x_both):
-        """
-        log patterns elicited in the network's various layers
+    def log_patterns(self, model: torch.nn.Module, x_both: torch.Tensor):
+        """logs hidden layer activity patterns
+
+        Args:
+            model (torch.nn.Module): feedfoward neural network
+            x_both (torch.Tensor): test inputs from both tasks
         """
 
         # (hidden) layer patterns
@@ -137,9 +174,14 @@ class MetricLogger:
         self.all_y_hidden.append(from_gpu(model.y_h))
         self.all_y_out.append(from_gpu(model.y))
 
-    def check_selectivity(self, yh):
-        """
-        performs regression to assess unit selectivity
+    def check_selectivity(self, yh: torch.Tensor) -> Tuple[np.int, np.int]:
+        """performs linear regression to test single unit selectivity
+
+        Args:
+            yh (torch.Tensor): hidden layer outputs
+
+        Returns:
+            Tuple[np.int, np.int]: number of task a and task b selective units
         """
         selectivity_matrix = np.zeros((100, 6))
         for i_neuron in range(100):
@@ -181,9 +223,18 @@ class MetricLogger:
 
         return n_ta, n_tb
 
-    def save(self, model, fname_results="results.pkl", fname_model="model.pkl"):
-        """
-        saves logs (and model) to disk
+    def save(
+        self,
+        model: torch.nn.Module,
+        fname_results="results.pkl",
+        fname_model="model.pkl",
+    ):
+        """saves the trained model and the logging results to disk
+
+        Args:
+            model (torch.nn.Module): the feedfoward neural network
+            fname_results (str, optional): file name for results. Defaults to "results.pkl".
+            fname_model (str, optional): file name for model. Defaults to "model.pkl".
         """
         results = {}
         results["losses_total"] = np.asarray(self.losses_total)

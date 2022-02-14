@@ -1,5 +1,5 @@
+from typing import List
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import math
 from utils.nnet import from_gpu
@@ -12,18 +12,32 @@ from sklearn.utils import shuffle
 import pandas as pd
 
 
-def sigmoid(x, L, k, x0):
-    """
-    sigmoidal nonlinearity with three free parameters (lapse, slope, offset)
+def sigmoid(x: np.float, L: np.float, k: np.float, x0: np.float) -> np.float:
+    """sigmoidal non-linearity with three free parameters
+        note: x can also be a vector
+    Args:
+        x (np.float): inputs
+        L (np.float): lapse rate (0,0.5)
+        k (np.float): slope (0,)
+        x0 (np.float): offset (0,)
+
+    Returns:
+        np.float: transformed y-value
     """
 
     y = L + (1 - L * 2) / (1.0 + np.exp(-k * (x - x0)))
     return y
 
 
-def scalar_projection(X, phi):
-    """
-    performs scalar projection of x onto y by angle phi
+def scalar_projection(X: np.array, phi: np.float) -> np.float:
+    """performs scalar projection of x onto y by angle phi
+
+    Args:
+        X (np.array): inputs
+        phi (np.float): angle of projection
+
+    Returns:
+        np.float: projected values
     """
     phi_bound = np.deg2rad(phi)
     phi_ort = phi_bound - np.deg2rad(90)
@@ -31,7 +45,16 @@ def scalar_projection(X, phi):
     return y
 
 
-def angular_distance(target_ang, source_ang):
+def angular_distance(target_ang: np.float, source_ang: np.float) -> np.float:
+    """computes angular distance between source and target angle
+
+    Args:
+        target_ang (np.float): angle in degrees
+        source_ang (np.float): angle in degrees
+
+    Returns:
+        np.float: angular distance in degrees
+    """
     target_ang = np.deg2rad(target_ang)
     source_ang = np.deg2rad(source_ang)
     return np.rad2deg(
@@ -39,25 +62,54 @@ def angular_distance(target_ang, source_ang):
     )
 
 
-def angular_bias(ref, est, task="a"):
+def angular_bias(ref: np.float, est: np.float, task="a") -> np.float:
+    """computes angular bias (0= orth,45= diag bounds)
+
+    Args:
+        ref (np.float): reference angle
+        est (np.float): estimated angle
+        task (str, optional): which task (determines sign). Defaults to "a".
+
+    Returns:
+        np.float: angular bias
+    """
     bias = angular_distance(est, ref)
     if task == "a":
         bias = -bias
     return bias
 
 
-def objective_function(X, y_true):
+def objective_function(X: np.array, y_true: np.array) -> np.float:
+    """computes loss between labels and predictions
+
+    Args:
+        X (np.array): inputs to model
+        y_true (np.array): labels
+
+    Returns:
+        np.float: loss
+    """
+
     def loss(theta):
         return -np.sum(np.log(1.0 - np.abs(y_true - choice_model(X, theta)) + 1e-5))
 
     return loss
 
 
-def choice_model(X, theta):
-    """
-    generates choice probability matrix
+def choice_model(
+    X: np.array, theta: List[np.float, np.float, np.float, np.float, np.float]
+) -> np.array:
+    """generates choice probability matrix
     free parameters: orientation of bound, slope, offset and lapse rate of sigmoidal transducer
+
+    Args:
+        X (np.array): inputs
+        theta (List[np.float, np.float, np.float, np.float, np.float]): parameters (projection angle a & b, lapse, slope and offset of sigmoid)
+
+    Returns:
+        np.array: predictions
     """
+
     # projection task a
     X1 = scalar_projection(X, theta[0])
     # projection task b
@@ -73,39 +125,49 @@ def choice_model(X, theta):
     return y_hat
 
 
-def fit_choice_model(y_true):
+def fit_choice_model(y_true: np.array, n_runs=1) -> List:
+    """fits choice model to data, using Nelder-Mead or L-BFGS-B algorithm
+
+    Args:
+        y_true (np.array): labels
+        n_runs (int, optional): number of runs. Defaults to 1.
+
+    Returns:
+        List: estimated parameters
     """
-    fits choice model to data, using Nelder-Mead or L-BFGS-B algorithm
-    """
+
+    assert n_runs > 0
+
     a, b = np.meshgrid(np.arange(-2, 3), np.arange(-2, 3))
     a = a.flatten()
     b = b.flatten()
     X = np.stack((a, b)).T
-    theta_init = [90, 180, 0, 10, 0]
-    theta_bounds = ((0, 360), (0, 360), (0, 0.5), (0, 20), (-1, 1))
-    results = minimize(
-        objective_function(X, y_true),
-        theta_init,
-        bounds=theta_bounds,
-        method="L-BFGS-B",
-    )
+    if n_runs == 1:
+        theta_init = [90, 180, 0, 10, 0]
+        theta_bounds = ((0, 360), (0, 360), (0, 0.5), (0, 20), (-1, 1))
+        results = minimize(
+            objective_function(X, y_true),
+            theta_init,
+            bounds=theta_bounds,
+            method="L-BFGS-B",
+        )
+        return results.x
+    elif n_runs > 1:
+        theta_initbounds = ((80, 100), (170, 190), (0, 0.1), (9.9, 10), (-0.02, 0.02))
+        thetas = []
+        for i in range(10):
+            theta_init = [
+                np.round(np.random.uniform(a[0], a[1]), 2) for a in theta_initbounds
+            ]
+            results = minimize(
+                objective_function(X, y_true),
+                theta_init,
+                bounds=theta_bounds,
+                method="L-BFGS-B",
+            )
+            thetas.append(results.x)
 
-    # # theta_initbounds = ((80, 100), (170, 190), (0, 0.1), (9.9, 10), (-0.02, 0.02))
-    # thetas = []
-    # for i in range(10):
-    #     # theta_init = [
-    #     #     np.round(np.random.uniform(a[0], a[1]), 2) for a in theta_initbounds
-    #     # ]
-    #     results = minimize(
-    #         objective_function(X, y_true),
-    #         theta_init,
-    #         bounds=theta_bounds,
-    #         method="L-BFGS-B",
-    #     )
-    #     thetas.append(results.x)
-
-    # return np.mean(np.array(thetas), 0)
-    return results.x
+        return np.mean(np.array(thetas), 0)
 
 
 def fit_model_to_subjects(choicemats):

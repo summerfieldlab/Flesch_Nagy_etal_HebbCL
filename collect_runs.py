@@ -1,9 +1,6 @@
-"""
-collects multiple runs per simulation
-"""
 import torch
 from pathlib import Path
-import datetime
+
 
 from utils.data import make_dataset
 from utils.nnet import get_device

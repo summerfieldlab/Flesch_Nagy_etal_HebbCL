@@ -1,11 +1,19 @@
 import numpy as np
 import torch
+import argparse
+import logger
+from typing import Dict
 
 
 class Optimiser:
     """custom optimiser for SGD + Hebbian training updates"""
 
-    def __init__(self, args):
+    def __init__(self, args: argparse.ArgumentParser):
+        """Constructor for optimiser
+
+        Args:
+            args (argparse.ArgumentParser): training params specified in parameters.py
+        """
         self.lrate_sgd = args.lrate_sgd
         self.lrate_hebb = args.lrate_hebb
         self.hebb_normaliser = args.hebb_normaliser
@@ -15,7 +23,14 @@ class Optimiser:
         self.losstype = args.loss_funct
         print(self.perform_sgd)
 
-    def step(self, model, x_in, r_target):
+    def step(self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor):
+        """a single training step, using procedure specified in args
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training inputs
+            r_target (torch.Tensor): training targets
+        """
 
         if self.perform_sgd == True:
             self.sgd_update(model, x_in, r_target)
@@ -27,9 +42,15 @@ class Optimiser:
             elif self.gating == "oja":
                 self.oja_update(model, x_in)
 
-    def sgd_update(self, model, x_in, r_target):
-        """
-        performs sgd update
+    def sgd_update(
+        self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor
+    ):
+        """performs stochastic gradient descent
+
+        Args:
+            model (torch.nn.Module): neural network
+            x_in (torch.Tensor): training input data
+            r_target (torch.Tensor): training labels
         """
         y_ = model(x_in)
         # compute loss
@@ -43,9 +64,13 @@ class Optimiser:
                     theta -= theta.grad * self.lrate_sgd
             model.zero_grad()
 
-    def oja_update(self, model, x_in):
-        """
-        applies faster oja's rule to context weights (slowoja, but vectorised)
+    def oja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """applies Oja's rule to weights from context units to hidden units
+        a vectorised implementation of slowoja_update
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training data
         """
         x_in = x_in[-2:]
         x_vec = x_in.repeat(100).reshape(-1, 2)
@@ -57,9 +82,12 @@ class Optimiser:
             model.W_h[-2:, :] += dW.T
             model.zero_grad()
 
-    def slowoja_update(self, model, x_in):
-        """
-        applies oja's rule to context weights
+    def slowoja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """a very slow but more readable implementation of Oja's rule
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training inputs
         """
         x_in = x_in[-2:]
         with torch.no_grad():
@@ -70,11 +98,14 @@ class Optimiser:
                 model.W_h[-2:, i] += dw
                 model.zero_grad()
 
-    def sla_update(self, model, x_in):
+    def sla_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """applies subspace learning algorithm to input-to-hidden weights
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training data
         """
-        performs update with subspace learning algorithm
-        """
-        # x_in = torch.t(x_in) # 27x1
+
         x_in = x_in.reshape(27, 1)
         with torch.no_grad():
             Y = torch.t(model.W_h) @ x_in
@@ -89,9 +120,12 @@ class Optimiser:
             )
             model.zero_grad()
 
-    def gha_update(self, model, x_in):
-        """
-        performs update with generalised hebbian algorithm
+    def gha_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """applies generalised hebbian algorithm update to input-to-hidden weights
+
+        Args:
+            model (torch.nn.Module): neural network
+            x_in (torch.Tensor): training data
         """
         x_in = torch.t(x_in)  # 27x1
         with torch.no_grad():
@@ -106,10 +140,15 @@ class Optimiser:
             )
             model.zero_grad()
 
-    def loss_funct(self, reward, y_hat):
-        """
-        loss function to use.
-        either negative reward or MSE on the model outputs.
+    def loss_funct(self, reward: torch.Tensor, y_hat: torch.Tensor) -> torch.float:
+        """sets loss function, either negative reward or mse on model outputs
+
+        Args:
+            reward (torch.Tensor): reward
+            y_hat (torch.Tensor): label
+
+        Returns:
+            torch.float: the computed loss
         """
         if self.losstype == "reward":
             # minimise -1*reward
@@ -121,9 +160,21 @@ class Optimiser:
         return loss
 
 
-def train_model(args, model, optim, data, logger):
-    """
-    trains neural network model
+def train_model(
+    args: argparse.ArgumentParser,
+    model: torch.nn.Module,
+    optim: Optimiser,
+    data: Dict[np.array],
+    logger: logger.MetricLogger,
+):
+    """trains a neural netowkr
+
+    Args:
+        args (argparse.ArgumentParser): training parameters
+        model (torch.nn.Module): feed forward neural network
+        optim (Optimiser): optimiser that performs the training procedure
+        data (Dict[np.array]): dictionary with training data
+        logger (logger.MetricLogger): a metric logger to keep track of training progress
     """
 
     # send data to gpu
