@@ -6,7 +6,7 @@ import pathlib
 import numpy as np
 import statsmodels.api as sm
 from scipy.stats import zscore
-import trainer
+from trainer import Optimiser
 
 from utils.nnet import from_gpu
 from utils.eval import *
@@ -89,7 +89,7 @@ class MetricLogger:
     def log_step(
         self,
         model: torch.nn.Module,
-        optim: trainer.Optimiser,
+        optim: Optimiser,
         x_a: torch.Tensor,
         x_b: torch.Tensor,
         x_both: torch.Tensor,

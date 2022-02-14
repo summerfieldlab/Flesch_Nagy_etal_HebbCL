@@ -96,15 +96,13 @@ def objective_function(X: np.array, y_true: np.array) -> np.float:
     return loss
 
 
-def choice_model(
-    X: np.array, theta: List[np.float, np.float, np.float, np.float, np.float]
-) -> np.array:
+def choice_model(X: np.array, theta: List[np.float]) -> np.array:
     """generates choice probability matrix
     free parameters: orientation of bound, slope, offset and lapse rate of sigmoidal transducer
 
     Args:
         X (np.array): inputs
-        theta (List[np.float, np.float, np.float, np.float, np.float]): parameters (projection angle a & b, lapse, slope and offset of sigmoid)
+        theta (List[np.float]): parameters (projection angle a & b, lapse, slope and offset of sigmoid)
 
     Returns:
         np.array: predictions

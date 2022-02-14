@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import argparse
-import logger
+
 from typing import Dict
 
 
@@ -165,7 +165,7 @@ def train_model(
     model: torch.nn.Module,
     optim: Optimiser,
     data: Dict[str, np.array],
-    logger: logger.MetricLogger,
+    logger,
 ):
     """trains a neural netowkr
 
