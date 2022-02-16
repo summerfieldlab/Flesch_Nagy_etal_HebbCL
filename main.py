@@ -4,10 +4,10 @@ from pathlib import Path
 from utils.data import make_dataset
 from utils.nnet import get_device
 
-from logger import MetricLogger
-from model import Gatednet, Nnet, ScaledNet
-from trainer import Optimiser, train_model
-from parameters import parser
+from hebbcl.logger import MetricLogger
+from hebbcl.model import Gatednet, Nnet, ScaledNet
+from hebbcl.trainer import Optimiser, train_model
+from hebbcl.parameters import parser
 
 
 args = parser.parse_args()

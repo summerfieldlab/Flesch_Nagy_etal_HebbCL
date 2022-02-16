@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-import pandas as pd
-import os
 import pickle
 import ray
 
@@ -13,9 +11,9 @@ from utils.data import make_dataset
 from utils.nnet import get_device, from_gpu
 from utils.eval import compute_accuracy
 
-from model import Nnet, Gatednet
-from trainer import Optimiser
-from parameters import parser
+from hebbcl.model import Nnet, Gatednet
+from hebbcl.trainer import Optimiser
+from hebbcl.parameters import parser
 
 
 # parse arguments
