@@ -28,6 +28,10 @@ class Nnet(nn.Module):
         )
         self.b_o = nn.Parameter(torch.zeros(args.n_out))
 
+        self.x_h = None
+        self.y_h = None
+        self.y = None
+
     def forward(self, x_batch: torch.Tensor) -> torch.Tensor:
         self.x_h = x_batch @ self.W_h + self.b_h
         self.y_h = F.relu(self.x_h)
@@ -54,6 +58,10 @@ class ScaledNet(nn.Module):
         )
         self.b_o = nn.Parameter(torch.zeros(args.n_out))
 
+        self.x_h = None
+        self.y_h = None
+        self.y = None
+
     def forward(self, x_batch: torch.Tensor) -> torch.Tensor:
         self.x_h = x_batch @ self.W_h + self.b_h
         self.y_h = F.relu(self.x_h)
@@ -78,6 +86,10 @@ class ChoiceNet(nn.Module):
             torch.randn(args.n_hidden, args.n_out) * 1 / np.sqrt(args.n_hidden)
         )
         self.b_o = nn.Parameter(torch.zeros(args.n_out))
+
+        self.x_h = None
+        self.y_h = None
+        self.y = None
 
     def forward(self, x_batch: torch.Tensor) -> torch.Tensor:
         self.x_h = x_batch @ self.W_h + self.b_h
@@ -106,6 +118,10 @@ class Gatednet(nn.Module):
             torch.randn(args.n_hidden, args.n_out) * args.weight_init
         )
         self.b_o = nn.Parameter(torch.zeros(args.n_out))
+
+        self.x_h = None
+        self.y_h = None
+        self.y = None
 
     def forward(self, x_batch: torch.Tensor) -> torch.Tensor:
         self.x_h = x_batch @ self.W_h + self.b_h
