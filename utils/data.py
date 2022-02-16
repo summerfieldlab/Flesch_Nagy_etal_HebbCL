@@ -97,7 +97,6 @@ def mk_block_wctx(
     val_b = val_b.flatten()
     val_l = val_l.flatten()
 
-    # plt.figure()
     ii_sub = 1
     blobs = np.empty((25, n_units))
     for ii in range(0, 25):
