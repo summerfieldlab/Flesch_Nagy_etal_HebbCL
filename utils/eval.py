@@ -140,9 +140,9 @@ def fit_choice_model(y_true: np.array, n_runs=1) -> List:
     a = a.flatten()
     b = b.flatten()
     X = np.stack((a, b)).T
+    theta_bounds = ((0, 360), (0, 360), (0, 0.5), (0, 20), (-1, 1))
     if n_runs == 1:
-        theta_init = [90, 180, 0, 10, 0]
-        theta_bounds = ((0, 360), (0, 360), (0, 0.5), (0, 20), (-1, 1))
+        theta_init = [90, 180, 0, 2, 0]
         results = minimize(
             objective_function(X, y_true),
             theta_init,
@@ -151,7 +151,7 @@ def fit_choice_model(y_true: np.array, n_runs=1) -> List:
         )
         return results.x
     elif n_runs > 1:
-        theta_initbounds = ((80, 100), (170, 190), (0, 0.1), (9.9, 10), (-0.02, 0.02))
+        theta_initbounds = ((80, 100), (170, 190), (0, 0.1), (14, 16), (-0.02, 0.02))
         thetas = []
         for i in range(10):
             theta_init = [
@@ -168,7 +168,7 @@ def fit_choice_model(y_true: np.array, n_runs=1) -> List:
         return np.mean(np.array(thetas), 0)
 
 
-def fit_model_to_subjects(choicemats):
+def fit_model_to_subjects(choicemats, n_runs=1):
     """
     wrapper for fit_choice_model
     loops over subjects
@@ -180,7 +180,7 @@ def fit_model_to_subjects(choicemats):
         cmat_a = choicemats[tasks[0]][sub, :, :]
         cmat_b = choicemats[tasks[1]][sub, :, :]
         cmats = np.concatenate((cmat_a.flatten(), cmat_b.flatten()))
-        theta_hat = fit_choice_model(cmats)
+        theta_hat = fit_choice_model(cmats, n_runs=n_runs)
         theta_hat[0] = angular_bias(theta_hat[0], 90, task="a")
         theta_hat[1] = angular_bias(theta_hat[1], 180, task="b")
         for idx, k in enumerate(thetas.keys()):
@@ -263,17 +263,22 @@ def make_dmat(features):
     return zscore(dmat, axis=0, ddof=1)
 
 
-def compute_congruency_acc(cmat, cmat_true):
+def compute_congruency_acc(cmat, cmat_true, n_samp=10000):
     """computes accuracy on congruent and incongruent trials
 
     Args:
         cmat (np array): choices
         cmat_true (np array): ground truth category labels
+        n_samp (int, optional): number of samples. Default to 10000
 
     Returns:
         int: accuracies on congruent and incongruent trials
     """
-    c = (cmat > 0.5) == (cmat_true > 0.5)
+    
+    c = np.array(
+        [(cmat > np.random.rand(*cmat.shape)) == cmat_true for _ in range(n_samp)]
+    ).mean(0)
+    
     acc_congruent = (np.mean(c[:2, :2]) + np.mean(c[3:, 3:])) / 2
     acc_incongruent = (np.mean(c[:2, 3:]) + np.mean(c[3:, :2])) / 2
     return acc_congruent, acc_incongruent

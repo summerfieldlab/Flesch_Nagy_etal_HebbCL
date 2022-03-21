@@ -2,15 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import seaborn as sns
+from scipy.stats import ttest_ind, norm, ttest_ind
+
+
+def sem(x, ax):
+    return np.nanstd(x, ddof=1, axis=ax) / np.sqrt(np.shape(x)[ax])
 
 
 def disp_model_estimates(thetas, cols=[[0.2, 0.2, 0.2], [0.6, 0.6, 0.6]]):
     """
     displays average parameter estimates of choice model
     """
-    sem = lambda x, ax: np.nanstd(x, ddof=1, axis=ax) / np.sqrt(np.shape(x)[ax])
-    parameters = ["bias", "lapse", "slope", "offset"]
-    curricula = ["blocked", "interleaved"]
+
+    parameters = ["bias", "lapse", "slope", "offset"]    
 
     plt.figure(figsize=(4, 1.5), dpi=300)
     plt.rcParams.update({"font.size": 6})
@@ -28,9 +32,8 @@ def disp_model_estimates(thetas, cols=[[0.2, 0.2, 0.2], [0.6, 0.6, 0.6]]):
             1, p_interleaved.mean(), yerr=sem(p_interleaved, 0), color=cols[1], zorder=1
         )
 
-        # _, pval = mannwhitneyu(p_blocked, p_interleaved)
-        # ax.set(
-        #     xticks=[0, 1],
+        # _, pval = ttest_ind(p_blocked, p_interleaved)
+
         #     title=param + ", p=" + str(np.round(pval, 3)),
         # )
 
@@ -41,21 +44,75 @@ def disp_model_estimates(thetas, cols=[[0.2, 0.2, 0.2], [0.6, 0.6, 0.6]]):
         ax.set_xticklabels(("blocked", "interleaved"), rotation=90)
         if param == "bias":
             ax.set_ylabel("angular bias (°)")
-            ax.set_ylim((0, 30))
+            ax.set_ylim((0, 20))
+            res = ttest_ind(p_blocked, p_interleaved)
+            z = res.statistic#norm.isf(res.pvalue / 2)
+            print(f"{param} blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+            if res.pvalue >= 0.05:
+                sigstar = "n.s."
+            elif res.pvalue < 0.001:
+                sigstar = "*" * 3
+            elif res.pvalue < 0.01:
+                sigstar = "*" * 2
+            elif res.pvalue < 0.05:
+                sigstar = "*"
+
+            plt.plot([0, 1], [20, 20], "k-", linewidth=1)
+            plt.text(0.5, 20, sigstar, ha="center", fontsize=6)
         elif param == "lapse":
             ax.set_ylabel("lapses (%)")
-            ax.set_ylim((0, 0.2))
+            ax.set_ylim((0, 0.51))
+            ax.set_yticks([0, 0.25, 0.5])
             ax.set_yticklabels(np.round(ax.get_yticks() * 100, 2))
+            res = ttest_ind(p_blocked, p_interleaved)
+            z = res.statistic#norm.isf(res.pvalue / 2)
+            print(f"{param} blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+            if res.pvalue >= 0.05:
+                sigstar = "n.s."
+            elif res.pvalue < 0.001:
+                sigstar = "*" * 3
+            elif res.pvalue < 0.01:
+                sigstar = "*" * 2
+            elif res.pvalue < 0.05:
+                sigstar = "*"
+
+            plt.plot([0, 1], [0.5, 0.5], "k-", linewidth=1)
+            plt.text(0.5, 0.5, sigstar, ha="center", fontsize=6)
         elif param == "slope":
             ax.set_ylabel("slope (a.u)")
+            ax.set_ylim((0, 15))
+            res = ttest_ind(p_blocked, p_interleaved)
+            z = res.statistic#norm.isf(res.pvalue / 2)
+            print(f"{param} blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+            if res.pvalue >= 0.05:
+                sigstar = "n.s."
+            elif res.pvalue < 0.001:
+                sigstar = "*" * 3
+            elif res.pvalue < 0.01:
+                sigstar = "*" * 2
+            elif res.pvalue < 0.05:
+                sigstar = "*"
+
+            plt.plot([0, 1], [15, 15], "k-", linewidth=1)
+            plt.text(0.5, 15, sigstar, ha="center", fontsize=6)
         elif param == "offset":
             ax.set_ylabel("offset (a.u.)")
-        sns.despine()
-
-        if param == "slope":
-            ax.set_ylim((0, 15))
-        elif param == "offset":
             ax.set_ylim((-0.05, 0.2))
+            res = ttest_ind(p_blocked, p_interleaved)
+            z = res.statistic#norm.isf(res.pvalue / 2)
+            print(f"{param} blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+            if res.pvalue >= 0.05:
+                sigstar = "n.s."
+            elif res.pvalue < 0.001:
+                sigstar = "*" * 3
+            elif res.pvalue < 0.01:
+                sigstar = "*" * 2
+            elif res.pvalue < 0.05:
+                sigstar = "*"
+
+            plt.plot([0, 1], [0.2, 0.2], "k-", linewidth=1)
+            plt.text(0.5, 0.2, sigstar, ha="center", fontsize=6)
+        sns.despine()
 
     plt.rc("figure", titlesize=6)
     plt.tight_layout()

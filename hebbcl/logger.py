@@ -6,7 +6,7 @@ import pathlib
 import numpy as np
 import statsmodels.api as sm
 from scipy.stats import zscore
-from trainer import Optimiser
+from hebbcl.trainer import Optimiser
 
 from utils.nnet import from_gpu
 from utils.eval import *

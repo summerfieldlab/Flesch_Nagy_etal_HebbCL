@@ -29,7 +29,7 @@ parser.add_argument(
 parser.add_argument(
     "--ctx_avg_alpha",
     default=1,
-    type=int,
+    type=float,
     help="ctx avg smoothing parameter alpha (ema)",
 )
 parser.add_argument(
