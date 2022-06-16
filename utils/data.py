@@ -28,50 +28,6 @@ def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20) -> np.array:
     return gausspdf.pdf(x_in)
 
 
-# def mk_block(context: str, do_shuffle: bool) -> Tuple[np.array, np.array, np.array]:
-#     """generates a training block
-
-#     Args:
-#         context (str): task a or task b
-#         do_shuffle (bool): shuffle trials
-
-#     Returns:
-#         Tuple: inputs, rewards and feature values
-#     """
-#     resolution = 5
-#     n_units = resolution ** 2
-#     l, b = np.meshgrid(np.linspace(0.2, 0.8, 5), np.linspace(0.2, 0.8, 5))
-#     b = b.flatten()
-#     l = l.flatten()
-#     r_n, r_s = np.meshgrid(np.linspace(-2, 2, 5), np.linspace(-2, 2, 5))
-#     r_s = r_s.flatten()
-#     r_n = r_n.flatten()
-#     val_l, val_b = np.meshgrid(np.linspace(1, 5, 5), np.linspace(1, 5, 5))
-#     val_b = val_b.flatten()
-#     val_l = val_l.flatten()
-
-#     ii_sub = 1
-#     blobs = np.empty((25, n_units))
-#     for ii in range(0, 25):
-#         blob = gen2Dgauss(x_mu=b[ii], y_mu=l[ii], xy_sigma=0.08, n=resolution)
-#         blob = blob / np.max(blob)
-#         ii_sub += 1
-#         blobs[ii, :] = blob.flatten()
-#     x1 = blobs
-#     if context == "task_a":
-#         reward = r_n
-#     elif context == "task_b":
-#         reward = r_s
-
-#     feature_vals = np.vstack((val_b, val_l)).T
-#     if do_shuffle:
-#         ii_shuff = np.random.permutation(25)
-#         x1 = x1[ii_shuff, :]
-#         feature_vals = feature_vals[ii_shuff, :]
-#         reward = reward[ii_shuff]
-#     return x1, reward, feature_vals
-
-
 def mk_block_wctx(
     context: str, do_shuffle: bool, c_scaling=1
 ) -> Tuple[np.array, np.array, np.array]:
@@ -89,7 +45,7 @@ def mk_block_wctx(
     n_units = resolution ** 2
     l, b = np.meshgrid(np.linspace(0.2, 0.8, 5), np.linspace(0.2, 0.8, 5))
     b = b.flatten()
-    l = l.flatten()
+    l = l.flatten()  # noqa E741
     r_s, r_n = np.meshgrid(np.linspace(-2, 2, 5), np.linspace(-2, 2, 5))
     r_s = r_s.flatten()
     r_n = r_n.flatten()
@@ -104,7 +60,7 @@ def mk_block_wctx(
         blob = blob / np.max(blob)
         ii_sub += 1
         blobs[ii, :] = blob.flatten()
-    x = blobs
+
     if context == "task_a":
         x1 = np.append(blobs, c_scaling * np.ones((blobs.shape[0], 1)), axis=1)
         x1 = np.append(x1, np.zeros((blobs.shape[0], 1)), axis=1)
@@ -143,7 +99,7 @@ def make_dataset(args: argparse.ArgumentParser) -> dict:
     y_task_b = y_task_b[:, np.newaxis]
     l_task_b = (y_task_b > 0).astype("int")
 
-    if args.ctx_weights == True:
+    if args.ctx_weights is True:
         x_task_a[:, :25] /= np.linalg.norm(x_task_a[:, :25])
         x_task_a[:, 25:] /= np.linalg.norm(x_task_a[:, 25:])
         x_task_b[:, :25] /= np.linalg.norm(x_task_b[:, :25])
@@ -260,7 +216,7 @@ def make_dataset(args: argparse.ArgumentParser) -> dict:
     else:
         print("Unknown training schedule parameter")
 
-    if args.centering == True:
+    if args.centering is True:
         sc = StandardScaler(with_std=False)
         data["x_train"] = sc.fit_transform(data["x_train"])
         # data["x_task_a"] = sc.transform(data["x_task_a"])
