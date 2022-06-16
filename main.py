@@ -32,7 +32,7 @@ if __name__ == "__main__":
     logger = MetricLogger(save_dir)
     if args.gating == "manual":
         model = Gatednet(args)
-    elif args.ctx_weights == True:
+    elif args.ctx_weights is True:
         model = ScaledNet(args)
     else:
         model = Nnet(args)
