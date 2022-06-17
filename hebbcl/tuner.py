@@ -18,6 +18,9 @@ class HPOTuner(object):
         self.time_budget = time_budget
         self.args = args
 
+        self.best_cfg = None
+        self.results = None
+
         ray.shutdown()
         ray.init(
             runtime_env={"working_dir": "../ray_tune/", "py_modules": [utils, hebbcl]}
@@ -35,13 +38,11 @@ class HPOTuner(object):
             mode=self.mode,
             resources_per_trial={"cpu": 1, "gpu": 0},
         )
-        best_cfg = analysis.get_best_config(metric=self.metric, mode=self.mode)
-        print("Best config: ", best_cfg)
-
+        self.best_cfg = analysis.get_best_config(metric=self.metric, mode=self.mode)
+        
         # results as dataframe
-        df = analysis.results_df
-        return {"df": df, "best": best_cfg}
-
+        self.results = analysis.results_df
+        
     def _trainable(self, config: dict):
         """function to optimise"""
         self.args.device, _ = utils.nnet.get_device(self.args.cuda)
