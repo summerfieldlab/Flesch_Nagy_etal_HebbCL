@@ -1,104 +1,143 @@
 import torch
 import numpy as np
 from argparse import ArgumentParser
-from utils.data import make_dataset
-from utils.nnet import from_gpu
-from utils.eval import compute_accuracy
-
-from hebbcl.model import Nnet, Gatednet
-from hebbcl.trainer import Optimiser
-from hebbcl.parameters import parser
+import utils
+import hebbcl
+import ray
 from ray import tune
 
 
-def train_nnet_with_ray(config: dict, args: ArgumentParser) -> dict:
-    """trains neural network model
+class HPOTuner(object):
+    def __init__(
+        self, args: ArgumentParser, time_budget: int = 100, metric: str = "loss"
+    ):
 
-    Args:
-        config (dict): dictionary with raytune config
-        args (ArgumentParser): params for nnet
+        self.metric = self._set_metric(metric)
+        self.mode = self._set_mode(metric)
 
-    Returns:
-        dict: raytune results
-    """
+        self.time_budget = time_budget
+        self.args = args
 
-    # get dataset
-    data = make_dataset(args)
+        ray.shutdown()
+        ray.init(
+            runtime_env={"working_dir": "../ray_tune/", "py_modules": [utils, hebbcl]}
+        )
 
-    # replace args with ray tune config
-    if args.gating == "SLA":
-        args.lrate_sgd = config["lrate_sgd"]
-        args.perform_hebb = True if config["sla"] == 1 else False
-        args.hebb_normaliser = config["normaliser"]
-        args.lrate_hebb = config["lrate_hebb"]
+    def tune(self):
+        """tunes trainable"""
+        # run ray tune
+        analysis = tune.run(
+            self._trainable,
+            config=self._get_config(),
+            time_budget_s=self.time_budget,
+            num_samples=100,
+            metric=self.metric,
+            mode=self.mode,
+            resources_per_trial={"cpu": 1, "gpu": 0},
+        )
+        best_cfg = analysis.get_best_config(metric=self.metric, mode=self.mode)
+        print("Best config: ", best_cfg)
 
-    elif args.gating == "manual":
-        args.lrate_sgd = config["lrate_sgd"]
-        args.n_episodes = config["n_episodes"]
-        args.weight_init = config["weight_init"]
+        # results as dataframe
+        df = analysis.results_df
+        return {"df": df, "best": best_cfg}
 
-    # instantiate model and optimiser
-    if args.gating == "manual":
-        model = Gatednet(args)
-    else:
-        model = Nnet(args)
-    optim = Optimiser(args)
+    def _trainable(self, config: dict):
+        """function to optimise"""
+        self.args.device, _ = utils.nnet.get_device(self.args.cuda)
+        print(self.args.device)
+        # get dataset
+        data = utils.data.make_dataset(self.args)
+        # replace self.args with ray tune config
+        for k, v in config.items():
+            setattr(self.args, k, v)
 
-    # send model to GPU
-    model = model.to(args.device)
+        # instantiate model and hebbcl.trainer.Optimiser
+        if self.args.gating == "manual":
+            model = hebbcl.model.Gatednet(self.args)
+        else:
+            model = hebbcl.model.Nnet(self.args)
+        optim = hebbcl.trainer.Optimiser(self.args)
 
-    # send data to gpu
-    x_train = torch.from_numpy(data["x_train"]).float().to(args.device)
-    y_train = torch.from_numpy(data["y_train"]).float().to(args.device)
+        # send model to GPU
+        model = model.to(self.args.device)
 
-    x_both = (
-        torch.from_numpy(np.concatenate((data["x_task_a"], data["x_task_b"]), axis=0))
-        .float()
-        .to(args.device)
-    )
-    r_both = (
-        torch.from_numpy(np.concatenate((data["y_task_a"], data["y_task_b"]), axis=0))
-        .float()
-        .to(args.device)
-    )
+        # send data to gpu
+        x_train = torch.from_numpy(data["x_train"]).float().to(self.args.device)
+        y_train = torch.from_numpy(data["y_train"]).float().to(self.args.device)
 
-    # loop over data and apply optimiser
-    idces = np.arange(len(x_train))
-    for ii, x, y in zip(idces, x_train, y_train):
-        optim.step(model, x, y)
+        x_both = (
+            torch.from_numpy(
+                np.concatenate((data["x_task_a"], data["x_task_b"]), axis=0)
+            )
+            .float()
+            .to(self.args.device)
+        )
+        r_both = (
+            torch.from_numpy(
+                np.concatenate((data["y_task_a"], data["y_task_b"]), axis=0)
+            )
+            .float()
+            .to(self.args.device)
+        )
 
-        if ii % args.log_interval == 0:
-            # obtain loss/acc metrics
-            loss_both = from_gpu(optim.loss_funct(r_both, model(x_both))).ravel()[0]
-            acc_both = compute_accuracy(r_both, model(x_both))
+        # loop over data and apply hebbcl.trainer.Optimiser
+        idces = np.arange(len(x_train))
+        for ii, x, y in zip(idces, x_train, y_train):
+            optim.step(model, x, y)
 
-            # send metrics to ray tune
-            tune.report(mean_loss=loss_both, mean_acc=acc_both)
+            if ii % self.args.log_interval == 0:
+                # obtain loss/acc metrics
+                loss_both = utils.nnet.from_gpu(
+                    optim.loss_funct(r_both, model(x_both))
+                ).ravel()[0]
+                acc_both = utils.eval.compute_accuracy(r_both, model(x_both))
 
+                # send metrics to ray tune
+                tune.report(mean_loss=loss_both, mean_acc=acc_both)
 
-def run_raytune(config: dict, args: ArgumentParser) -> dict:
-    """performs raytun HPO
+    def _get_config(self):
+        """retrieves model-specific HPO config"""
+        if self.args.gating == "SLA":
+            config = {
+                "lrate_sgd": tune.loguniform(1e-4, 1e-1),
+                "lrate_hebb": tune.loguniform(1e-4, 1e-1),
+                "normaliser": tune.uniform(1, 20),
+                "n_episodes": tune.choice([200, 500, 1000]),
+                "sla": tune.grid_search([0, 1]),
+            }
+        elif self.args.gating == "manual":
+            config = {
+                "lrate_sgd": tune.loguniform(1e-3, 1e-1),
+                "n_episodes": tune.choice([200, 500, 1000]),
+                "weight_init": tune.loguniform(1e-4, 1e-3),
+            }
+        elif self.args.gating == "oja":
+            config = {
+                "lrate_sgd": tune.loguniform(1e-4, 1e-1),
+                "lrate_hebb": tune.loguniform(1e-4, 1e-1),
+                "ctx_scaling": tune.randint(1, 8),
+            }
+        elif self.args.gating is None:
+            config = {
+                "lrate_sgd": tune.loguniform(1e-3, 1e-1),
+                "n_episodes": tune.choice([200, 500, 1000]),
+            }
 
-    Args:
-        config (dict): dicitonary with raytune hyperopt searchspace
-        args (ArgumentParser): nnet params
+        return config
 
-    Returns:
-        dict: results
-    """
-    # run ray tune
-    analysis = tune.run(
-        train_nnet_with_ray,
-        config=config,
-        num_samples=100,
-        metric="mean_loss",
-        mode="min",
-        resources_per_trial={"cpu": 1, "gpu": 0},
-    )
-    best_cfg = analysis.get_best_config(metric="mean_loss", mode="min")
-    print("Best config: ", best_cfg)
+    def _set_metric(self, metric: str):
+        if metric == "loss":
+            return "mean_loss"
+        elif metric == "acc":
+            return "mean_acc"
+        else:
+            raise ValueError("Invalid metric provided (choose 'loss' or 'acc'")
 
-    # results as dataframe
-    df = analysis.results_df
-    results = {"df": df, "best": best_cfg}
-    return results
+    def _set_mode(self, metric: str):
+        if metric == "loss":
+            return "min"
+        elif metric == "acc":
+            return "max"
+        else:
+            raise ValueError("Invalid metric provided (choose 'loss' or 'acc'")
