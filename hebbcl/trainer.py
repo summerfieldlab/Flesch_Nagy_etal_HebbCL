@@ -21,7 +21,8 @@ class Optimiser:
         self.perform_hebb = args.perform_hebb
         self.gating = args.gating
         self.losstype = args.loss_funct
-        print(self.perform_sgd)
+        self.n_features = args.n_features
+        self.n_hidden = args.n_hidden
 
     def step(self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor):
         """a single training step, using procedure specified in args
@@ -72,6 +73,38 @@ class Optimiser:
             model (torch.nn.Module): feed forward neural network
             x_in (torch.Tensor): training data
         """
+        x_vec = x_in.repeat(self.n_hidden).reshape(-1, self.n_features)
+
+        with torch.no_grad():
+            y = torch.t(model.W_h) @ x_in
+            y = y.repeat(self.n_features).reshape(self.n_features, -1).T
+            dW = self.lrate_hebb * y * (x_vec - y * torch.t(model.W_h))
+            model.W_h += dW.T
+            model.zero_grad()
+
+    def slowoja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """a very slow but more readable implementation of Oja's rule
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training inputs
+        """
+
+        with torch.no_grad():
+            for i in range(model.W_h.shape[1]):
+                y = torch.t(model.W_h[:, i]) @ x_in
+                dw = self.lrate_hebb * y * (x_in - y * model.W_h[:, i])
+
+                model.W_h[:, i] += dw
+                model.zero_grad()
+
+    def oja_ctx_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """same as oja_update, but applied only to context units
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training data
+        """
         x_in = x_in[-2:]
         x_vec = x_in.repeat(100).reshape(-1, 2)
 
@@ -82,8 +115,8 @@ class Optimiser:
             model.W_h[-2:, :] += dW.T
             model.zero_grad()
 
-    def slowoja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
-        """a very slow but more readable implementation of Oja's rule
+    def slowoja_ctx_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """same as slowja_update, but applied only to context units
 
         Args:
             model (torch.nn.Module): feed forward neural network
@@ -106,7 +139,7 @@ class Optimiser:
             x_in (torch.Tensor): training data
         """
 
-        x_in = x_in.reshape(27, 1)
+        x_in = x_in.reshape(self.n_features, 1)
         with torch.no_grad():
             Y = torch.t(model.W_h) @ x_in
             Y = Y.reshape(-1)
@@ -127,7 +160,7 @@ class Optimiser:
             model (torch.nn.Module): neural network
             x_in (torch.Tensor): training data
         """
-        x_in = torch.t(x_in)  # 27x1
+        x_in = torch.t(x_in)  # self.n_featuresx1
         with torch.no_grad():
             Y = torch.t(model.W_h) @ x_in
             model.W_h += torch.t(
