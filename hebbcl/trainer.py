@@ -32,9 +32,9 @@ class Optimiser:
             r_target (torch.Tensor): training targets
         """
 
-        if self.perform_sgd == True:
+        if self.perform_sgd is True:
             self.sgd_update(model, x_in, r_target)
-        if self.perform_hebb == True:
+        if self.perform_hebb is True:
             if self.gating == "SLA":
                 self.sla_update(model, x_in)
             elif self.gating == "GHA":
