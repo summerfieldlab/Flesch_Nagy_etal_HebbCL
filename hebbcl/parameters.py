@@ -63,7 +63,7 @@ parser.add_argument(
     help="normalising const. for hebbian update",
 )
 parser.add_argument(
-    "--gating", default="oja", help="any of: None, manual, GHA, SLA, oja"
+    "--gating", default="oja_ctx", help="any of: None, manual, GHA, SLA, oja, oja_ctx"
 )
 parser.add_argument(
     "--loss_funct",

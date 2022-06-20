@@ -42,6 +42,8 @@ class Optimiser:
                 self.gha_update(model, x_in)
             elif self.gating == "oja":
                 self.oja_update(model, x_in)
+            elif self.gating == "oja_ctx":
+                self.oja_ctx_update(model, x_in)
 
     def sgd_update(
         self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor
