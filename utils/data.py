@@ -263,8 +263,8 @@ def make_dataset(args: argparse.ArgumentParser) -> dict:
     if args.centering == True:
         sc = StandardScaler(with_std=False)
         data["x_train"] = sc.fit_transform(data["x_train"])
-        # data["x_task_a"] = sc.transform(data["x_task_a"])
-        # data["x_task_b"] = sc.transform(data["x_task_b"])
+        data["x_task_a"] = sc.transform(data["x_task_a"])
+        data["x_task_b"] = sc.transform(data["x_task_b"])
         # x_in = StandardScaler(with_std=False).fit_transform(x_in)
         if args.training_schedule == "blocked":
             # remove info about 2nd task during training on 1st task
