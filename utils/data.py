@@ -217,9 +217,10 @@ def make_dataset(args: argparse.ArgumentParser) -> dict:
         print("Unknown training schedule parameter")
 
     if args.centering is True:
-        sc = StandardScaler(with_std=False)
-        # center only the context signal
-        data["x_train"][:, -2:] = sc.fit_transform(data["x_train"][:, -2:])
+        sc = StandardScaler(with_std=False)        
+        data["x_train"] = sc.fit_transform(data["x_train"])
+        data["x_task_a"] = sc.transform(data["x_task_a"])
+        data["x_task_b"] = sc.transform(data["x_task_b"])
 
         if args.training_schedule == "blocked":
             # remove info about 2nd task during training on 1st task
