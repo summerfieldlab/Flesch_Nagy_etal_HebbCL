@@ -83,7 +83,7 @@ if __name__ == "__main__":
     args.lrate_hebb = 0.05
     args.weight_init = 1e-2
     args.save_results = True
-    args.gating = "oja"
+    args.gating = "oja_ctx"
     args.centering = True
     args.verbose = False
     args.ctx_avg = True
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     args.lrate_hebb = 0.05
     args.weight_init = 1e-2
     args.save_results = True
-    args.gating = "oja"
+    args.gating = "oja_ctx"
     args.centering = True
     args.verbose = False
     args.ctx_avg = True

@@ -26,14 +26,14 @@ class HPOTuner(object):
             runtime_env={"working_dir": "../ray_tune/", "py_modules": [utils, hebbcl]}
         )
 
-    def tune(self):
+    def tune(self, time_budget=None, n_samples=None):
         """tunes trainable"""
         # run ray tune
         analysis = tune.run(
             self._trainable,
             config=self._get_config(),
-            time_budget_s=self.time_budget,
-            num_samples=100,
+            time_budget_s=time_budget if time_budget else self.time_budget,
+            num_samples=n_samples if n_samples else 100,
             metric=self.metric,
             mode=self.mode,
             resources_per_trial={"cpu": 1, "gpu": 0},
@@ -113,7 +113,7 @@ class HPOTuner(object):
                 "n_episodes": tune.choice([200, 500, 1000]),
                 "weight_init": tune.loguniform(1e-4, 1e-3),
             }
-        elif self.args.gating == "oja":
+        elif (self.args.gating == "oja") or (self.args.gating == "oja_ctx"):
             config = {
                 "lrate_sgd": tune.loguniform(1e-4, 1e-1),
                 "lrate_hebb": tune.loguniform(1e-4, 1e-1),
