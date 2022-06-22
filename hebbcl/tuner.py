@@ -11,6 +11,13 @@ class HPOTuner(object):
     def __init__(
         self, args: ArgumentParser, time_budget: int = 100, metric: str = "loss"
     ):
+        """hyperparameter optimisation for nnets
+
+        Args:
+            args (ArgumentParser): collection of neural network training parameters
+            time_budget (int, optional): time budget allocated to the fitting process (in seconds). Defaults to 100.
+            metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
+        """
 
         self.metric = self._set_metric(metric)
         self.mode = self._set_mode(metric)
@@ -26,8 +33,13 @@ class HPOTuner(object):
             runtime_env={"working_dir": "../ray_tune/", "py_modules": [utils, hebbcl]}
         )
 
-    def tune(self, time_budget=None, n_samples=None):
-        """tunes trainable"""
+    def tune(self, time_budget: int = None, n_samples: int = None):
+        """runs the tuner. time budget and n trials set in constructor can be overwritten here
+
+        Args:
+            time_budget (int, optional): time in seconds allocated to the fitting proces. Defaults to 100.
+            n_samples (int, optional): number of trials. Defaults to 100.
+        """
         # run ray tune
         analysis = tune.run(
             self._trainable,
@@ -39,12 +51,16 @@ class HPOTuner(object):
             resources_per_trial={"cpu": 1, "gpu": 0},
         )
         self.best_cfg = analysis.get_best_config(metric=self.metric, mode=self.mode)
-        
+
         # results as dataframe
         self.results = analysis.results_df
-        
+
     def _trainable(self, config: dict):
-        """function to optimise"""
+        """training loop for nnet
+
+        Args:
+            config (dict): search space config for nnet hyperparams
+        """
         self.args.device, _ = utils.nnet.get_device(self.args.cuda)
         print(self.args.device)
         # get dataset
@@ -97,7 +113,7 @@ class HPOTuner(object):
                 # send metrics to ray tune
                 tune.report(mean_loss=loss_both, mean_acc=acc_both)
 
-    def _get_config(self):
+    def _get_config(self) -> dict:
         """retrieves model-specific HPO config"""
         if self.args.gating == "SLA":
             config = {
@@ -127,7 +143,18 @@ class HPOTuner(object):
 
         return config
 
-    def _set_metric(self, metric: str):
+    def _set_metric(self, metric: str) -> str:
+        """verifies and sets metric chosen by user
+
+        Args:
+            metric (str): can be loss or acc
+
+        Raises:
+            ValueError: if not loss or acc
+
+        Returns:
+            str: chosen metric
+        """
         if metric == "loss":
             return "mean_loss"
         elif metric == "acc":
@@ -135,7 +162,18 @@ class HPOTuner(object):
         else:
             raise ValueError("Invalid metric provided (choose 'loss' or 'acc'")
 
-    def _set_mode(self, metric: str):
+    def _set_mode(self, metric: str) -> str:
+        """sets sign of metric to optimise (search for min or max)
+
+        Args:
+            metric (str): which metric. either "loss" or "acc"
+
+        Raises:
+            ValueError: if metric neither "loss" nor "acc"
+
+        Returns:
+            str: optimisation mode (min or max)
+        """
         if metric == "loss":
             return "min"
         elif metric == "acc":
