@@ -6,6 +6,11 @@ import utils
 import hebbcl
 import ray
 from ray import tune
+from ray.tune.suggest.bohb import TuneBOHB
+from ray.tune.suggest import SearchAlgorithm
+from ray.tune.suggest.suggestion import Searcher
+from ray.tune.schedulers import HyperBandForBOHB, ASHAScheduler, TrialScheduler
+from typing import Union
 
 
 class HPOTuner(object):
@@ -29,10 +34,10 @@ class HPOTuner(object):
         self.best_cfg = None
         self.results = None
 
-        if self.args.deterministic:
-            np.random.seed(1234)
-            random.seed(1234)
-            torch.manual_seed(1234)
+        if self.args.hpo_fixedseed:
+            np.random.seed(self.args.seed)
+            random.seed(self.args.seed)
+            torch.manual_seed(self.args.seed)
 
         ray.shutdown()
         ray.init(
@@ -48,13 +53,16 @@ class HPOTuner(object):
         """
         # run ray tune
         analysis = tune.run(
-            lambda cfg: self._trainable(cfg),
+            lambda cfg, checkpoint_dir: self._trainable(cfg, checkpoint_dir),
             config=self._get_config(),
             time_budget_s=time_budget if time_budget else self.time_budget,
             num_samples=n_samples if n_samples else 100,
+            search_alg=self._set_algo(),
+            scheduler=self._set_scheduler(),
             metric=self.metric,
             mode=self.mode,
             resources_per_trial={"cpu": 1, "gpu": 0},
+            verbose=1,
         )
         self.best_cfg = analysis.get_best_config(metric=self.metric, mode=self.mode)
 
@@ -69,7 +77,7 @@ class HPOTuner(object):
         """
         self.args.device, _ = utils.nnet.get_device(self.args.cuda)
         # get deterministic behaviour if desired:
-        if self.args.deterministic:
+        if self.args.hpo_fixedseed:
             np.random.seed(config["seed"])
             random.seed(config["seed"])
             torch.manual_seed(config["seed"])
@@ -122,6 +130,41 @@ class HPOTuner(object):
                 # send metrics to ray tune
                 tune.report(mean_loss=loss_both, mean_acc=acc_both)
 
+    def _set_algo(self) -> Union[Searcher, SearchAlgorithm, None]:
+        """sets search algorithm based on user preference"""
+        if self.args.hpo_searcher == "bohb":
+            algo = TuneBOHB(
+                metric=self.metric,
+                mode=self.mode,
+                seed=self.args.seed if self.args.hpo_fixedseed else None,
+            )
+        else:
+            algo = None
+        return algo
+
+    def _set_scheduler(self) -> Union[TrialScheduler, None]:
+        """sets scheduler based on user preference
+
+        Returns:
+            Union[Searcher, None]: search scheduler or none
+        """
+        if self.args.hpo_scheduler == "bohb":
+            scheduler = HyperBandForBOHB(
+                time_attr="training_iteration",                
+                max_t=self.time_budget // 2,
+            )
+        elif self.args.hpo_scheduler == "asha":
+            scheduler = ASHAScheduler(
+                time_attr="training_iteration",  # TODO what's this?                
+                max_t=self.time_budget // 2,
+                grace_period=10,
+                reduction_factor=3,
+                brackets=1,
+            )
+        else:
+            scheduler = None
+        return scheduler
+
     def _get_config(self) -> dict:
         """retrieves model-specific HPO config"""
         if self.args.gating == "SLA":
@@ -150,7 +193,7 @@ class HPOTuner(object):
                 "n_episodes": tune.choice([200, 500, 1000]),
             }
 
-        if self.args.deterministic:
+        if self.args.hpo_fixedseed:
             config["seed"] = tune.randint(0, 10000)
 
         return config

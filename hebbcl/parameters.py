@@ -128,8 +128,31 @@ parser.add_argument("--save_dir", default="simu1", help="save dir for model outp
 
 # tuner params
 parser.add_argument(
-    "--deterministic",
+    "--hpo_fixedseed",
     default=False,
     type=boolean_string,
     help="fixed random seed for hpo",
+)
+
+parser.add_argument(
+    "--hpo_scheduler",
+    default=None,
+    type=str,
+    help="trial scheduler, currently supports [asha, bohb, None]",
+)
+
+parser.add_argument(
+    "--hpo_searcher",
+    default=None,
+    type=str,
+    help="search algo, currently supports [bohb, None]",
+)
+
+
+# miscellaneous
+parser.add_argument(
+    "--seed",
+    default=1234,
+    type=int,
+    help="random seed"
 )
