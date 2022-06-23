@@ -46,7 +46,7 @@ parser.add_argument(
     "--weight_init", default=1e-2, type=float, help="initial input weight scale"
 )
 parser.add_argument(
-    "--ctx_w_init", default=0.5, type=float, help="initial context weight scale"
+    "--ctx_w_init", default=1e-2, type=float, help="initial context weight scale"
 )
 
 # optimiser parameters
