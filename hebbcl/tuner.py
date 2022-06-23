@@ -64,7 +64,9 @@ class HPOTuner(object):
             resources_per_trial={"cpu": 1, "gpu": 0},
             verbose=1,
         )
-        self.best_cfg = self._analysis.get_best_config(metric=self.metric, mode=self.mode)
+        self.best_cfg = self._analysis.get_best_config(
+            metric=self.metric, mode=self.mode
+        )
 
         # results as dataframe
         self.results = self._analysis.results_df
@@ -150,12 +152,12 @@ class HPOTuner(object):
         """
         if self.args.hpo_scheduler == "bohb":
             scheduler = HyperBandForBOHB(
-                time_attr="training_iteration",                
+                time_attr="training_iteration",
                 max_t=self.time_budget // 2,
             )
         elif self.args.hpo_scheduler == "asha":
             scheduler = ASHAScheduler(
-                time_attr="training_iteration",  # TODO what's this?                
+                time_attr="training_iteration",  # TODO what's this?
                 max_t=self.time_budget // 2,
                 grace_period=10,
                 reduction_factor=3,
