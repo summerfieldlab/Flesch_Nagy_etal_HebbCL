@@ -68,7 +68,7 @@ if __name__ == "__main__":
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_baseline_int_select_sv" + str(ii)
+        args.save_dir = "sluggish_baseline_int_8episodes_sv" + str(ii)
         Parallel(n_jobs=6, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_oja_blocked_select_sv" + str(ii)
+        args.save_dir = "sluggish_oja_blocked_8episodes_sv" + str(ii)
         Parallel(n_jobs=6, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_oja_int_select_sv" + str(ii)
+        args.save_dir = "sluggish_oja_int_8episodes_sv" + str(ii)
         Parallel(n_jobs=6, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
