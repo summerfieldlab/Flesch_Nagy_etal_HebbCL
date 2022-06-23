@@ -63,7 +63,7 @@ if __name__ == "__main__":
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "interleaved"
-    args.n_runs = 30
+    args.n_runs = 50
 
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "blocked"
-    args.n_runs = 30
+    args.n_runs = 50
 
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "interleaved"
-    args.n_runs = 30
+    args.n_runs = 50
 
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
