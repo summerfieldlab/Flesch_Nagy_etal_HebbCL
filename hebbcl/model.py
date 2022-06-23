@@ -9,11 +9,11 @@ import argparse
 class Nnet(nn.Module):
     """simple feed forward neural network with a single hidden layer"""
 
-    def __init__(self, args: argparse.ArgumentParser):
+    def __init__(self, args: argparse.Namespace):
         """constructor for feedforward neural network
 
         Args:
-            args (parser.ArgumentParser): command line arguments
+            args (parser.Namespace): command line arguments
         """
         super().__init__()
         # input weights
@@ -43,7 +43,7 @@ class Nnet(nn.Module):
 class ScaledNet(nn.Module):
     """Similar to Nnet above, but with separate params for input and context weights"""
 
-    def __init__(self, args: argparse.ArgumentParser):
+    def __init__(self, args: argparse.Namespace):
         super().__init__()
         # input weights
         self.W_hin = torch.randn(args.n_features - 2, args.n_hidden) * args.weight_init
@@ -73,7 +73,7 @@ class ScaledNet(nn.Module):
 class ChoiceNet(nn.Module):
     """same as above, but with outputs passed through sigmoid"""
 
-    def __init__(self, args: argparse.ArgumentParser):
+    def __init__(self, args: argparse.Namespace):
         super().__init__()
         # input weights
         self.W_h = nn.Parameter(
@@ -102,7 +102,7 @@ class ChoiceNet(nn.Module):
 class Gatednet(nn.Module):
     """nnet with manual context gating"""
 
-    def __init__(self, args: argparse.ArgumentParser):
+    def __init__(self, args: argparse.Namespace):
         super().__init__()
         # input weights
         self.W_hin = torch.randn(args.n_features - 2, args.n_hidden) * args.weight_init
