@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-from argparse import ArgumentParser
+import random
+import argparse
 import utils
 import hebbcl
 import ray
@@ -9,7 +10,7 @@ from ray import tune
 
 class HPOTuner(object):
     def __init__(
-        self, args: ArgumentParser, time_budget: int = 100, metric: str = "loss"
+        self, args: argparse.Namespace, time_budget: int = 100, metric: str = "loss"
     ):
         """hyperparameter optimisation for nnets
 
@@ -28,6 +29,11 @@ class HPOTuner(object):
         self.best_cfg = None
         self.results = None
 
+        if self.args.deterministic:
+            np.random.seed(1234)
+            random.seed(1234)
+            torch.manual_seed(1234)
+
         ray.shutdown()
         ray.init(
             runtime_env={"working_dir": "../ray_tune/", "py_modules": [utils, hebbcl]}
@@ -42,7 +48,7 @@ class HPOTuner(object):
         """
         # run ray tune
         analysis = tune.run(
-            self._trainable,
+            lambda cfg: self._trainable(cfg),
             config=self._get_config(),
             time_budget_s=time_budget if time_budget else self.time_budget,
             num_samples=n_samples if n_samples else 100,
@@ -55,19 +61,24 @@ class HPOTuner(object):
         # results as dataframe
         self.results = analysis.results_df
 
-    def _trainable(self, config: dict):
+    def _trainable(self, config: dict, checkpoint_dir: str = None):  # noqa E231
         """training loop for nnet
 
         Args:
             config (dict): search space config for nnet hyperparams
         """
         self.args.device, _ = utils.nnet.get_device(self.args.cuda)
-        print(self.args.device)
-        # get dataset
-        data = utils.data.make_dataset(self.args)
+        # get deterministic behaviour if desired:
+        if self.args.deterministic:
+            np.random.seed(config["seed"])
+            random.seed(config["seed"])
+            torch.manual_seed(config["seed"])
         # replace self.args with ray tune config
         for k, v in config.items():
             setattr(self.args, k, v)
+
+        # get dataset
+        data = utils.data.make_dataset(self.args)
 
         # instantiate model and hebbcl.trainer.Optimiser
         if self.args.gating == "manual":
@@ -76,10 +87,8 @@ class HPOTuner(object):
             model = hebbcl.model.Nnet(self.args)
         optim = hebbcl.trainer.Optimiser(self.args)
 
-        # send model to GPU
+        # send model and data to device
         model = model.to(self.args.device)
-
-        # send data to gpu
         x_train = torch.from_numpy(data["x_train"]).float().to(self.args.device)
         y_train = torch.from_numpy(data["y_train"]).float().to(self.args.device)
 
@@ -140,6 +149,9 @@ class HPOTuner(object):
                 "lrate_sgd": tune.loguniform(1e-3, 1e-1),
                 "n_episodes": tune.choice([200, 500, 1000]),
             }
+
+        if self.args.deterministic:
+            config["seed"] = tune.randint(0, 10000)
 
         return config
 

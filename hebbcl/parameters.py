@@ -124,3 +124,12 @@ parser.add_argument(
     help="save model and results (yes/no)",
 )
 parser.add_argument("--save_dir", default="simu1", help="save dir for model outputs")
+
+
+# tuner params
+parser.add_argument(
+    "--deterministic",
+    default=False,
+    type=boolean_string,
+    help="fixed random seed for hpo",
+)
