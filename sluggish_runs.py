@@ -1,6 +1,3 @@
-"""
-collects multiple runs for a range of sluggishness values
-"""
 import torch
 from pathlib import Path
 
@@ -53,21 +50,22 @@ if __name__ == "__main__":
 
     # BASELINE NETWORK -------------------------------------------------
     args.cuda = False
+    args.n_episodes = 8
     args.ctx_scaling = 5
     args.lrate_sgd = 0.2
     args.lrate_hebb = 0.0093
     args.weight_init = 1e-2
     args.save_results = True
     args.gating = "None"
+    args.perform_hebb = False
     args.centering = True
     args.verbose = False
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "interleaved"
-    args.n_runs = 50
-    # args.loss_funct = 'rew_on_sigmoid'
+    args.n_runs = 30
 
-    sluggish_vals = np.linspace(0.05, 1, 20)
+    sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
         args.save_dir = "sluggish_baseline_int_select_sv" + str(ii)
@@ -78,9 +76,10 @@ if __name__ == "__main__":
     # OJA NETWORK BLOCKED ---------------------------------------------
     # overwrite standard parameters
     args.cuda = False
-    args.ctx_scaling = 1
-    args.lrate_sgd = 0.03
-    args.lrate_hebb = 0.05
+    args.n_episodes = 8
+    args.ctx_scaling = 3
+    args.lrate_sgd = 0.09207067771676251
+    args.lrate_hebb = 0.0039883754510576805
     args.weight_init = 1e-2
     args.save_results = True
     args.gating = "oja_ctx"
@@ -89,9 +88,9 @@ if __name__ == "__main__":
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "blocked"
-    args.n_runs = 20
+    args.n_runs = 30
 
-    sluggish_vals = np.linspace(0.05, 1, 20)
+    sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
         args.save_dir = "sluggish_oja_blocked_select_sv" + str(ii)
@@ -102,9 +101,10 @@ if __name__ == "__main__":
     # OJA NETWORK INTERLEAVED -----------------------------------------
     # overwrite standard parameters
     args.cuda = False
-    args.ctx_scaling = 1
-    args.lrate_sgd = 0.03
-    args.lrate_hebb = 0.05
+    args.n_episodes = 8
+    args.ctx_scaling = 3
+    args.lrate_sgd = 0.08710014100174149
+    args.lrate_hebb = 0.005814333717889643
     args.weight_init = 1e-2
     args.save_results = True
     args.gating = "oja_ctx"
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "interleaved"
-    args.n_runs = 20
+    args.n_runs = 30
 
-    sluggish_vals = np.linspace(0.05, 1, 20)
+    sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
         args.save_dir = "sluggish_oja_int_select_sv" + str(ii)
