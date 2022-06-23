@@ -9,7 +9,7 @@ from scipy.stats import zscore
 from hebbcl.trainer import Optimiser
 
 from utils.nnet import from_gpu
-from utils.eval import *
+from utils.eval import compute_accuracy, compute_relchange, compute_sparsity_stats, make_dmat
 
 
 class MetricLogger:
