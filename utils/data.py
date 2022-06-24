@@ -1,4 +1,6 @@
 import argparse
+import pickle
+from PIL import Image
 from typing import Tuple
 import numpy as np
 import pandas as pd
@@ -6,6 +8,36 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils import shuffle
 
 from scipy.stats import multivariate_normal
+
+
+def resize_images(
+    filename: str = None, filepath: str = "../datasets/", size: tuple = (24, 24)
+):
+    """resizes rgb images in pickle file
+
+    Args:
+        filename (str, optional): name of dataset to load. Defaults to None.
+        filepath (str, optional): path to dataset. Defaults to "../datasets".
+        size (tuple, optional): new size in pixels. Defaults to (24, 24).
+    """
+
+    with open(filepath + filename + ".pkl", "rb") as f:
+        data = pickle.load(f)
+
+    x_rs = np.array(
+        list(
+            map(
+                lambda x: np.asarray(
+                    Image.fromarray(x.reshape((96, 96, 3))).resize(size)
+                ).flatten(),
+                data["images"],
+            )
+        )
+    )
+    data["images"] = x_rs
+
+    with open(filepath + filename + "_ds24.pkl", "wb") as f:
+        pickle.dump(data, f)
 
 
 def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20) -> np.array:
@@ -217,7 +249,7 @@ def make_dataset(args: argparse.ArgumentParser) -> dict:
         print("Unknown training schedule parameter")
 
     if args.centering is True:
-        sc = StandardScaler(with_std=False)        
+        sc = StandardScaler(with_std=False)
         data["x_train"] = sc.fit_transform(data["x_train"])
         data["x_task_a"] = sc.transform(data["x_task_a"])
         data["x_task_b"] = sc.transform(data["x_task_b"])
