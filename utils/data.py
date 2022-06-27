@@ -60,8 +60,71 @@ def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20) -> np.array:
     return gausspdf.pdf(x_in)
 
 
+def make_trees_block(
+    context: str,
+    do_shuffle: bool = False,
+    c_scaling: int = 1,
+    filepath: str = "../datasets/",
+    whichset: str = "training",
+    exemplar: int = 0,
+) -> Tuple[np.array, np.array, np.array]:
+    """generates a training block with stimuli from trees dataset
+
+    Args:
+        context (str): which task task_a (north) or task_b (south).
+        do_shuffle (bool, optional): shuffle trials?. Defaults to False.
+        c_scaling (int, optional): context offset. Defaults to 1.
+        filepath( str, optional): path to datasets. Defaults to "../datasets/"
+        whichset (str, optional): "training" or "test". Defaults to "training".
+        exemplar (int, optional): which exemplar, int in [0,199]. Defaults to 0.
+
+    Returns:
+        Tuple[np.array, np.array, np.array]: input images, rewards, feature values
+    """
+    assert context in ["task_a", "task_b"]
+    assert whichset in ["training", "test"]
+    context = "north" if context == "task_a" else "south"
+
+    # load appropriate dataset
+    with open(
+        filepath + whichset + "_data_" + context + "_withgarden_ds24.pkl", "rb"
+    ) as f:
+        data = pickle.load(f)
+
+    # pull out data belonging to specific exemplar
+    idces = data["exemplars"] == exemplar
+    for k in data.keys():
+        data[k] = data[k][
+            idces,
+        ]
+
+    # reformat and add context signal
+    contexts = np.zeros((len(data["images"]), 2))
+    contexts[:, data["contexts"] - 1] = 1 * c_scaling
+    data["images"] = np.concatenate(
+        (data["images"].astype("float") / 255, contexts), axis=1
+    )
+
+    if do_shuffle:
+        idces = shuffle(np.arange(len(data["images"])))
+        data["images"] = data["images"][idces, :]
+        data["rewards"] = data["rewards"][idces, :]
+        data["branchiness"] = data["branchiness"][
+            idces,
+        ]
+        data["leafiness"] = data["leafiness"][
+            idces,
+        ]
+    # return only required stuff
+    return (
+        data["images"],
+        data["rewards"][:, 0].reshape((-1, 1)),
+        np.stack((data["branchiness"], data["leafiness"]), axis=1),
+    )
+
+
 def make_blobs_block(
-    context: str, do_shuffle: bool, c_scaling=1
+    context: str, do_shuffle: bool, c_scaling: int = 1
 ) -> Tuple[np.array, np.array, np.array]:
     """generates a training block with stimuli from blobs dataset
 
@@ -111,11 +174,170 @@ def make_blobs_block(
     return x1, reward, feature_vals
 
 
-def make_blobs_dataset(args: argparse.ArgumentParser) -> dict:
+def make_trees_blocks(
+    do_shuffle: bool = False,
+    whichtask: str = "task_a",
+    whichset: str = "training",
+    n_blocks: int = 10,
+    c_scaling: int = 1,
+    n_max: int = 199,
+) -> Tuple[np.array, np.array, np.array]:
+    """todo
+
+    Args:
+        do_shuffle (bool, optional): todo. Defaults to False.
+        whichtask (str, optional): todo. Defaults to "task_a".
+        whichset (str, optional): todo. Defaults to "training".
+        n_blocks (int, optional): todo. Defaults to 10.
+        c_scaling (int, optional): todo. Defaults to 1.
+
+    Returns:
+        Tuple[np.array, np.array, np.array]: todo
+    """
+    episode_idces = np.random.permutation(n_max)[:n_blocks]
+    x_a, y_a, f_a = None, None, None
+    for e in episode_idces:
+        xe, ye, fe = make_trees_block(
+            whichtask,
+            do_shuffle=do_shuffle,
+            c_scaling=c_scaling,
+            exemplar=e,
+            whichset=whichset,
+        )
+        x_a = np.vstack((x_a, xe)) if x_a is not None else xe
+        y_a = np.vstack((y_a, ye)) if y_a is not None else ye
+        f_a = np.vstack((f_a, fe)) if f_a is not None else fe
+    return x_a, y_a, f_a
+
+
+def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> dict:
+    """todo
+
+    Args:
+        args (argparse.Namespace): todo
+        whichphase (str, optional): todo. Defaults to "train".
+
+    Returns:
+        dict: todo
+    """
+    # training dataset:
+    # for n_episodes: sample exemplar indices, make block
+    x_a, y_a, f_a = make_trees_blocks(
+        whichtask="task_a",
+        whichset="training",
+        do_shuffle=True,
+        c_scaling=args.ctx_scaling,
+        n_blocks=args.n_episodes // 2,
+        n_max=399,
+    )
+    x_b, y_b, f_b = make_trees_blocks(
+        whichtask="task_b",
+        whichset="training",
+        do_shuffle=True,
+        c_scaling=args.ctx_scaling,
+        n_blocks=args.n_episodes // 2,
+        n_max=399,
+    )
+
+    data = {}
+    if args.training_schedule == "blocked":
+        shuff_idces = np.random.permutation(len(x_a))
+        data["x_train"] = np.vstack(
+            (
+                x_a[
+                    shuff_idces,
+                ],
+                x_b[
+                    shuff_idces,
+                ],
+            )
+        )
+        data["y_train"] = np.vstack(
+            (
+                y_a[
+                    shuff_idces,
+                ],
+                y_b[
+                    shuff_idces,
+                ],
+            )
+        )
+        data["f_train"] = np.vstack(
+            (
+                f_a[
+                    shuff_idces,
+                ],
+                f_b[
+                    shuff_idces,
+                ],
+            )
+        )
+    elif args.training_schedule == "interleaved":
+        shuff_idces = np.random.permutation(len(x_a) * 2)
+        data["x_train"] = np.vstack((x_a, x_b))[shuff_idces]
+        data["y_train"] = np.vstack((y_a, y_b))[shuff_idces]
+        data["f_train"] = np.vstack((f_a, f_b))[shuff_idces]
+
+    # now get test datasets (for task a and b)
+    data["x_test_a"], data["y_test_a"], data["f_test_a"] = make_trees_blocks(
+        whichtask="task_a",
+        whichset="test",
+        do_shuffle=False,
+        c_scaling=args.ctx_scaling,
+        n_blocks=10,
+        n_max=199,
+    )
+    data["x_test_b"], data["y_test_b"], data["f_test_b"] = make_trees_blocks(
+        whichtask="task_b",
+        whichset="test",
+        do_shuffle=False,
+        c_scaling=args.ctx_scaling,
+        n_blocks=10,
+        n_max=199,
+    )
+
+    if args.centering is True:
+        sc = StandardScaler(with_std=False)
+        data["x_train"] = sc.fit_transform(data["x_train"])
+        data["x_test_a"] = sc.transform(data["x_test_a"])
+        data["x_test_b"] = sc.transform(data["x_test_b"])
+        
+        if args.training_schedule == "blocked":
+            # remove info about 2nd task during training on 1st task
+            data["x_train"][data["x_train"][:, -2] > 0, -1] = 0
+
+    if args.ctx_avg:
+        if args.ctx_avg_type == "sma":
+            data["x_train"][:, -2] = (
+                pd.Series(data["x_train"][:, -2])
+                .rolling(window=args.ctx_avg_window, min_periods=1)
+                .mean()
+            )
+            data["x_train"][:, -1] = (
+                pd.Series(data["x_train"][:, -1])
+                .rolling(window=args.ctx_avg_window, min_periods=1)
+                .mean()
+            )
+        elif args.ctx_avg_type == "ema":
+            data["x_train"][:, -2] = (
+                pd.Series(data["x_train"][:, -2])
+                .ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1)
+                .mean()
+            )
+            data["x_train"][:, -1] = (
+                pd.Series(data["x_train"][:, -1])
+                .ewm(alpha=args.ctx_avg_alpha, adjust=False, min_periods=1)
+                .mean()
+            )
+
+    return data
+
+
+def make_blobs_dataset(args: argparse.Namespace) -> dict:
     """makes dataset for experiment with blobs stimuli
 
     Args:
-        args (argparse.ArgumentParser): training parameters
+        args (argparse.Namespace): training parameters
 
     Returns:
         dict: inputs and labels for training and test phase
