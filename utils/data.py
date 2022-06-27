@@ -63,7 +63,7 @@ def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20) -> np.array:
 def make_blobs_block(
     context: str, do_shuffle: bool, c_scaling=1
 ) -> Tuple[np.array, np.array, np.array]:
-    """generates a training block
+    """generates a training block with stimuli from blobs dataset
 
     Args:
         context (str): task a or task b
@@ -112,7 +112,7 @@ def make_blobs_block(
 
 
 def make_blobs_dataset(args: argparse.ArgumentParser) -> dict:
-    """makes dataset for experiment
+    """makes dataset for experiment with blobs stimuli
 
     Args:
         args (argparse.ArgumentParser): training parameters
