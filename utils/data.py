@@ -60,7 +60,7 @@ def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20) -> np.array:
     return gausspdf.pdf(x_in)
 
 
-def mk_block_wctx(
+def make_blobs_block(
     context: str, do_shuffle: bool, c_scaling=1
 ) -> Tuple[np.array, np.array, np.array]:
     """generates a training block
@@ -111,7 +111,7 @@ def mk_block_wctx(
     return x1, reward, feature_vals
 
 
-def make_dataset(args: argparse.ArgumentParser) -> dict:
+def make_blobs_dataset(args: argparse.ArgumentParser) -> dict:
     """makes dataset for experiment
 
     Args:
@@ -123,11 +123,11 @@ def make_dataset(args: argparse.ArgumentParser) -> dict:
 
     random_state = np.random.randint(999)
 
-    x_task_a, y_task_a, f_task_a = mk_block_wctx("task_a", 0, args.ctx_scaling)
+    x_task_a, y_task_a, f_task_a = make_blobs_block("task_a", 0, args.ctx_scaling)
     y_task_a = y_task_a[:, np.newaxis]
     l_task_a = (y_task_a > 0).astype("int")
 
-    x_task_b, y_task_b, f_task_b = mk_block_wctx("task_b", 0, args.ctx_scaling)
+    x_task_b, y_task_b, f_task_b = make_blobs_block("task_b", 0, args.ctx_scaling)
     y_task_b = y_task_b[:, np.newaxis]
     l_task_b = (y_task_b > 0).astype("int")
 

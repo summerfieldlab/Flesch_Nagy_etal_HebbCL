@@ -2,12 +2,12 @@ import torch
 from pathlib import Path
 
 
-from utils.data import make_dataset
+from utils.data import make_blobs_dataset
 from utils.nnet import get_device
 
 from hebbcl.logger import MetricLogger
 from hebbcl.model import Gatednet, Nnet
-from hebbcl.trainer import Optimiser, train_model
+from hebbcl.trainer import Optimiser, train_on_blobs
 from hebbcl.parameters import parser
 from joblib import Parallel, delayed
 
@@ -27,7 +27,7 @@ def execute_run(i_run):
     args.device, _ = get_device(args.cuda)
 
     # get dataset
-    dataset = make_dataset(args)
+    dataset = make_blobs_dataset(args)
 
     # instantiate logger, model and optimiser
     logger = MetricLogger(save_dir)
@@ -41,7 +41,7 @@ def execute_run(i_run):
     model = model.to(args.device)
 
     # train model
-    train_model(args, model, optim, dataset, logger)
+    train_on_blobs(args, model, optim, dataset, logger)
 
     # save results
     if args.save_results:

@@ -195,14 +195,14 @@ class Optimiser:
         return loss
 
 
-def train_model(
+def train_on_blobs(
     args: argparse.ArgumentParser,
     model: torch.nn.Module,
     optim: Optimiser,
     data: Dict[str, np.array],
     logger,
 ):
-    """trains a neural netowkr
+    """trains a neural network on blobs task
 
     Args:
         args (argparse.ArgumentParser): training parameters

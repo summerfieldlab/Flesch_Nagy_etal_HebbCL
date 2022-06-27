@@ -413,7 +413,7 @@ def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20):
     return gausspdf.pdf(x_in)
 
 
-def mk_block_wctx(context, do_shuffle, c_scaling=1):
+def make_blobs_block(context, do_shuffle, c_scaling=1):
     """
     generates block of experiment
     Input:
@@ -538,7 +538,7 @@ def gen_modelrdms(ctx_offset=1):
     return rdms, dmat
 
 
-def make_dataset(
+def make_blobs_dataset(
     ctx_scaling=1,
     training_schedule="blocked",
     n_episodes=10,
@@ -552,11 +552,11 @@ def make_dataset(
 
     random_state = np.random.randint(999)
 
-    x_task_a, y_task_a, f_task_a = mk_block_wctx("task_a", 0, ctx_scaling)
+    x_task_a, y_task_a, f_task_a = make_blobs_block("task_a", 0, ctx_scaling)
     y_task_a = y_task_a[:, np.newaxis]
     l_task_a = (y_task_a > 0).astype("int")
 
-    x_task_b, y_task_b, f_task_b = mk_block_wctx("task_b", 0, ctx_scaling)
+    x_task_b, y_task_b, f_task_b = make_blobs_block("task_b", 0, ctx_scaling)
     y_task_b = y_task_b[:, np.newaxis]
     l_task_b = (y_task_b > 0).astype("int")
 

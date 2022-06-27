@@ -88,7 +88,7 @@ class HPOTuner(object):
             setattr(self.args, k, v)
 
         # get dataset
-        data = utils.data.make_dataset(self.args)
+        data = utils.data.make_blobs_dataset(self.args)
 
         # instantiate model and hebbcl.trainer.Optimiser
         if self.args.gating == "manual":
