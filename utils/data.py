@@ -301,7 +301,7 @@ def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> d
         data["x_train"] = sc.fit_transform(data["x_train"])
         data["x_test_a"] = sc.transform(data["x_test_a"])
         data["x_test_b"] = sc.transform(data["x_test_b"])
-        
+
         if args.training_schedule == "blocked":
             # remove info about 2nd task during training on 1st task
             data["x_train"][data["x_train"][:, -2] > 0, -1] = 0

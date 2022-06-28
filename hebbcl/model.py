@@ -181,10 +181,10 @@ class ScaledNet2Hidden2Ctx(nn.Module):
         Returns:
             torch.Tensor: the network's prediction
         """
-        x_batch = torch.reshape(x_batch, (-1, self.n_features))        
+        x_batch = torch.reshape(x_batch, (-1, self.n_features))
         self.x_h1 = x_batch @ self.W_h1 + self.b_h1
         self.y_h1 = F.relu(self.x_h1)
-        
+
         self.x_h2 = (
             torch.cat((self.y_h1, x_batch[:, -2:]), axis=1) @ self.W_h2 + self.b_h2
         )
