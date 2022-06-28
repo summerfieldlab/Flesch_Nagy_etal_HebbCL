@@ -1,7 +1,7 @@
 checkpoints/*
 checkpoints
 checkpoints\*
-datasets/*.pkl
+datasets/*garden.pkl
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
