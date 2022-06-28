@@ -209,7 +209,7 @@ def train_on_blobs(
         model (torch.nn.Module): feed forward neural network
         optim (Optimiser): optimiser that performs the training procedure
         data (Dict[str, np.array]): dictionary with training data
-        logger (logger.MetricLogger): a metric logger to keep track of training progress
+        logger (logger.LoggerFactory): a metric logger to keep track of training progress
     """
 
     # send data to gpu

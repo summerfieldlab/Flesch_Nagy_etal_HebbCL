@@ -37,6 +37,7 @@ parser.add_argument(
 )
 
 # network parameters
+parser.add_argument("--n_layers", default=1, type=int, help="number of hidden layers")
 parser.add_argument(
     "--n_features", default=27, type=int, help="number of stimulus units"
 )

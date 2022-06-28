@@ -17,7 +17,17 @@ from utils.eval import (
 )
 
 
-class MetricLogger:
+class LoggerFactory:
+
+    @staticmethod
+    def create(args, save_dir):
+        if args.n_layers == 1:
+            return MetricLogger1Hidden(save_dir)
+        elif args.n_layers == 2:
+            return MetricLogger2Hidden(save_dir)
+
+
+class MetricLogger1Hidden:
     """logs experiment results"""
 
     def __init__(self, save_dir: pathlib.Path):
@@ -269,7 +279,7 @@ class MetricLogger:
             pickle.dump(model, f)
 
 
-class MetricLogger2Hidden(MetricLogger):
+class MetricLogger2Hidden(MetricLogger1Hidden):
     def __init__(self, save_dir: pathlib.Path):
         super().__init__(save_dir)
 

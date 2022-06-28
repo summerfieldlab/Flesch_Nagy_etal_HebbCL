@@ -4,7 +4,7 @@ from pathlib import Path
 from utils.data import make_blobs_dataset
 from utils.nnet import get_device
 
-from hebbcl.logger import MetricLogger
+from hebbcl.logger import LoggerFactory
 from hebbcl.model import Gatednet, Nnet, ScaledNet
 from hebbcl.trainer import Optimiser, train_on_blobs
 from hebbcl.parameters import parser
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     dataset = make_blobs_dataset(args)
 
     # instantiate logger, model and optimiser
-    logger = MetricLogger(save_dir)
+    logger = LoggerFactory.create(args, save_dir)
     if args.gating == "manual":
         model = Gatednet(args)
     elif args.ctx_weights is True:
