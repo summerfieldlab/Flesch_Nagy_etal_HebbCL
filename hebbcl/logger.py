@@ -18,7 +18,6 @@ from utils.eval import (
 
 
 class LoggerFactory:
-
     @staticmethod
     def create(args, save_dir):
         if args.n_layers == 1:
@@ -174,7 +173,7 @@ class MetricLogger1Hidden:
         )
 
         # sparsity
-        model.forward(x_both)
+        model.forward(x_both[:50, :])
         n_dead, n_local, n_a, n_b, dotprod = compute_sparsity_stats(
             from_gpu(model.y_h).T
         )
@@ -185,9 +184,9 @@ class MetricLogger1Hidden:
         self.results["hidden_dotprod"].append(dotprod)
 
         if not hasattr(self, "dmat"):
-            self.dmat = make_dmat(f_both)
+            self.dmat = make_dmat(f_both[:50, :])
         yh = from_gpu(model.y_h)
-        assert yh.shape == (50, 100)
+        # assert yh.shape == (50, 100)
         n_ta, n_tb = self.check_selectivity(yh)
         self.results["n_only_a_regr"].append(n_ta)
         self.results["n_only_b_regr"].append(n_tb)
@@ -215,8 +214,8 @@ class MetricLogger1Hidden:
         Returns:
             Tuple[np.int, np.int]: number of task a and task b selective units
         """
-        selectivity_matrix = np.zeros((100, 6))
-        for i_neuron in range(100):
+        selectivity_matrix = np.zeros((yh.shape[1], 6))
+        for i_neuron in range(yh.shape[1]):
             y_neuron = yh[:, i_neuron]
             model = sm.OLS(zscore(y_neuron), self.dmat)
             regr_results = model.fit()
@@ -410,16 +409,16 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
         self.results["hidden_dotprod2"].append(dotprod)
 
         if not hasattr(self, "dmat"):
-            self.dmat = make_dmat(f_both)
+            self.dmat = make_dmat(f_both[:50, :])
 
         yh = from_gpu(model.y_h1)
-        assert yh.shape == (50, 100)
+        # assert yh.shape == (50, 100)
         n_ta, n_tb = self.check_selectivity(yh)
         self.results["n_only_a_regr"].append(n_ta)
         self.results["n_only_b_regr"].append(n_tb)
 
         yh = from_gpu(model.y_h2)
-        assert yh.shape == (50, 100)
+        # assert yh.shape == (50, 100)
         n_ta, n_tb = self.check_selectivity(yh)
         self.results["n_only_a_regr2"].append(n_ta)
         self.results["n_only_b_regr2"].append(n_tb)

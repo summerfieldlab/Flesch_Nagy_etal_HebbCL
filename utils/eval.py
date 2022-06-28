@@ -360,7 +360,7 @@ def compute_sparsity_stats(yout):
     """
     # yout is n_units x n_trials
     # 1. average within contexts
-    assert yout.shape == (100, 50)
+    # assert yout.shape == (100, 50)
     x = np.vstack((np.mean(yout[:, 0:25], 1).T, np.mean(yout[:, 25:-1], 1).T))
     # should yield a 2xn_hidden vector
     # now count n dead units (i.e. return 0 in both tasks)

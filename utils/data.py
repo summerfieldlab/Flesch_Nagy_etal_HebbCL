@@ -274,9 +274,16 @@ def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> d
         )
     elif args.training_schedule == "interleaved":
         shuff_idces = np.random.permutation(len(x_a) * 2)
-        data["x_train"] = np.vstack((x_a, x_b))[shuff_idces]
-        data["y_train"] = np.vstack((y_a, y_b))[shuff_idces]
-        data["f_train"] = np.vstack((f_a, f_b))[shuff_idces]
+        print(len(shuff_idces))
+        data["x_train"] = np.vstack((x_a, x_b))[
+            shuff_idces,
+        ]
+        data["y_train"] = np.vstack((y_a, y_b))[
+            shuff_idces,
+        ]
+        data["f_train"] = np.vstack((f_a, f_b))[
+            shuff_idces,
+        ]
 
     # now get test datasets (for task a and b)
     data["x_test_a"], data["y_test_a"], data["f_test_a"] = make_trees_blocks(

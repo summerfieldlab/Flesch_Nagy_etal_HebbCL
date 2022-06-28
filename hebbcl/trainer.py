@@ -23,6 +23,8 @@ class Optimiser:
         self.losstype = args.loss_funct
         self.n_features = args.n_features
         self.n_hidden = args.n_hidden
+        self.n_layers = args.n_layers
+        self.ctx_twice = args.ctx_twice  # -> apply ctx twice in 2 hidden net?
 
     def step(self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor):
         """a single training step, using procedure specified in args
@@ -36,14 +38,20 @@ class Optimiser:
         if self.perform_sgd is True:
             self.sgd_update(model, x_in, r_target)
         if self.perform_hebb is True:
-            if self.gating == "SLA":
-                self.sla_update(model, x_in)
-            elif self.gating == "GHA":
-                self.gha_update(model, x_in)
-            elif self.gating == "oja":
-                self.oja_update(model, x_in)
-            elif self.gating == "oja_ctx":
-                self.oja_ctx_update(model, x_in)
+            if self.n_layers == 1:
+                if self.gating == "SLA":
+                    self.sla_update(model, x_in)
+                elif self.gating == "GHA":
+                    self.gha_update(model, x_in)
+                elif self.gating == "oja":
+                    self.oja_update(model, x_in)
+                elif self.gating == "oja_ctx":
+                    self.oja_ctx_update(model, x_in)
+            elif self.n_layers == 2:
+                if self.gating == "oja_ctx":
+                    self.oja_ctx_update_2hidden(model, x_in)
+                else:
+                    raise NotImplementedError("Only oja_ctx supported for 2 layer net")
 
     def sgd_update(
         self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor
@@ -108,7 +116,7 @@ class Optimiser:
             x_in (torch.Tensor): training data
         """
         x_in = x_in[-2:]
-        x_vec = x_in.repeat(100).reshape(-1, 2)
+        x_vec = x_in.repeat(self.n_hidden).reshape(-1, 2)
 
         with torch.no_grad():
             y = torch.t(model.W_h[-2:, :]) @ x_in
@@ -116,6 +124,31 @@ class Optimiser:
             dW = self.lrate_hebb * y * (x_vec - y * torch.t(model.W_h[-2:, :]))
             model.W_h[-2:, :] += dW.T
             model.zero_grad()
+
+    def oja_ctx_update_2hidden(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """same as above, but for net with two hidden layers
+
+        Args:
+            model (torch.nn.Module): feed forward neural network
+            x_in (torch.Tensor): training data
+        """
+        x_in = x_in[-2:]
+        x_vec = x_in.repeat(self.n_hidden).reshape(-1, 2)
+
+        with torch.no_grad():
+            y = torch.t(model.W_h1[-2:, :]) @ x_in
+            y = y.repeat(2).reshape(2, -1).T
+            dW = self.lrate_hebb * y * (x_vec - y * torch.t(model.W_h1[-2:, :]))
+            model.W_h1[-2:, :] += dW.T
+            model.zero_grad()
+
+        if self.ctx_twice:  # apply hebb to second hidden layer
+            with torch.no_grad():
+                y = torch.t(model.W_h2[-2:, :]) @ x_in
+                y = y.repeat(2).reshape(2, -1).T
+                dW = self.lrate_hebb * y * (x_vec - y * torch.t(model.W_h2[-2:, :]))
+                model.W_h2[-2:, :] += dW.T
+                model.zero_grad()
 
     def slowoja_ctx_update(self, model: torch.nn.Module, x_in: torch.Tensor):
         """same as slowja_update, but applied only to context units
@@ -259,9 +292,95 @@ def train_on_blobs(
                 )
                 print(
                     "... n_a: {:d} n_b: {:d}".format(
-                        logger.results["n_only_a_regr"][-1], logger.results['n_only_b_regr'][-1]
+                        logger.results["n_only_a_regr"][-1],
+                        logger.results["n_only_b_regr"][-1],
                     )
                 )
+
+    logger.log_patterns(model, x_both)
+    print("done")
+
+
+def train_on_trees(
+    args: argparse.ArgumentParser,
+    model: torch.nn.Module,
+    optim: Optimiser,
+    data: Dict[str, np.array],
+    logger,
+):
+    """trains a neural network on trees task
+
+    Args:
+        args (argparse.ArgumentParser): training parameters
+        model (torch.nn.Module): feed forward neural network
+        optim (Optimiser): optimiser that performs the training procedure
+        data (Dict[str, np.array]): dictionary with training data
+        logger (logger.LoggerFactory): a metric logger to keep track of training progress
+    """
+
+    # send data to gpu
+    x_train = torch.from_numpy(data["x_train"]).float().to(args.device)
+    y_train = torch.from_numpy(data["y_train"]).float().to(args.device)
+
+    # test: create test sets
+    x_a = torch.from_numpy(data["x_test_a"]).float().to(args.device)
+    r_a = torch.from_numpy(data["y_test_a"]).float().to(args.device)
+
+    x_b = torch.from_numpy(data["x_test_b"]).float().to(args.device)
+    r_b = torch.from_numpy(data["y_test_b"]).float().to(args.device)
+
+    x_both = (
+        torch.from_numpy(np.concatenate((data["x_test_a"], data["x_test_b"]), axis=0))
+        .float()
+        .to(args.device)
+    )
+    r_both = (
+        torch.from_numpy(np.concatenate((data["y_test_a"], data["y_test_b"]), axis=0))
+        .float()
+        .to(args.device)
+    )
+
+    f_both = (
+        torch.from_numpy(np.concatenate((data["f_test_a"], data["f_test_b"]), axis=0))
+        .float()
+        .to(args.device)
+    )
+
+    # log state of initialised model
+    logger.log_init(model)
+    logger.log_patterns(model, x_both)
+
+    # loop over data and apply optimiser
+    idces = np.arange(len(x_train))
+    for ii, x, y in zip(idces, x_train, y_train):
+        optim.step(model, x, y)
+        if ii % args.log_interval == 0:
+
+            logger.log_step(model, optim, x_a, x_b, x_both, r_a, r_b, r_both, f_both)
+            if args.verbose:
+                print(
+                    "step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}".format(
+                        str(ii),
+                        logger.results["losses_1st"][-1],
+                        logger.results["losses_2nd"][-1],
+                        logger.results["acc_1st"][-1],
+                        logger.results["acc_2nd"][-1],
+                    )
+                )
+                print(
+                    "...1st hidden: n_a: {:d} n_b: {:d}".format(
+                        logger.results["n_only_a_regr"][-1],
+                        logger.results["n_only_b_regr"][-1],
+                    )
+                )
+
+                if args.n_layers > 1:
+                    print(
+                        "... 2nd hidden: n_a: {:d} n_b: {:d}".format(
+                            logger.results["n_only_a_regr2"][-1],
+                            logger.results["n_only_b_regr2"][-1],
+                        )
+                    )
 
     logger.log_patterns(model, x_both)
     print("done")
