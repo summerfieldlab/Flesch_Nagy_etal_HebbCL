@@ -6,6 +6,27 @@ import numpy as np
 import argparse
 
 
+class ModelFactory:
+    @staticmethod
+    def create(args):
+        if args.n_layers == 1:
+            if args.gating == "manual":
+                return Gatednet(args)
+            elif args.ctx_weights is True:
+                return ScaledNet(args)
+            else:
+                return Nnet(args)
+        elif args.n_layers == 2:
+            if args.gating == "manual":
+                raise NotImplementedError(
+                    "No manual gating for two hidden layer networks"
+                )
+            elif args.ctx_twice:
+                return ScaledNet2Hidden2Ctx(args)
+            else:
+                return ScaledNet2Hidden(args)
+
+
 class Nnet(nn.Module):
     """simple feed forward neural network with a single hidden layer"""
 

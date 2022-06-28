@@ -6,7 +6,7 @@ from utils.data import make_blobs_dataset
 from utils.nnet import get_device
 
 from hebbcl.logger import LoggerFactory
-from hebbcl.model import Gatednet, Nnet
+from hebbcl.model import ModelFactory
 from hebbcl.trainer import Optimiser, train_on_blobs
 from hebbcl.parameters import parser
 from joblib import Parallel, delayed
@@ -31,10 +31,7 @@ def execute_run(i_run):
 
     # instantiate logger, model and optimiser
     logger = LoggerFactory.create(args, save_dir)
-    if args.gating == "manual":
-        model = Gatednet(args)
-    else:
-        model = Nnet(args)
+    model = ModelFactory.create(args)
     optim = Optimiser(args)
 
     # send model to GPU

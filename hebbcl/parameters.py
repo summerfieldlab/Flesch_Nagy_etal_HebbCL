@@ -50,6 +50,12 @@ parser.add_argument(
     "--ctx_w_init", default=1e-2, type=float, help="initial context weight scale"
 )
 
+parser.add_argument(
+    "--ctx_twice",
+    default=False,
+    type=boolean_string,
+    help="apply context to both hidden layers",
+)
 # optimiser parameters
 parser.add_argument(
     "--lrate_sgd", default=1e-2, type=float, help="learning rate for SGD"
@@ -151,9 +157,4 @@ parser.add_argument(
 
 
 # miscellaneous
-parser.add_argument(
-    "--seed",
-    default=1234,
-    type=int,
-    help="random seed"
-)
+parser.add_argument("--seed", default=1234, type=int, help="random seed")
