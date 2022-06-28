@@ -251,15 +251,15 @@ def train_on_blobs(
                 print(
                     "step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}".format(
                         str(ii),
-                        logger.losses_1st[-1],
-                        logger.losses_2nd[-1],
-                        logger.acc_1st[-1],
-                        logger.acc_2nd[-1],
+                        logger.results["losses_1st"][-1],
+                        logger.results["losses_2nd"][-1],
+                        logger.results["acc_1st"][-1],
+                        logger.results["acc_2nd"][-1],
                     )
                 )
                 print(
                     "... n_a: {:d} n_b: {:d}".format(
-                        logger.n_only_a_regr[-1], logger.n_only_b_regr[-1]
+                        logger.results["n_only_a_regr"][-1], logger.results['n_only_b_regr'][-1]
                     )
                 )
 
