@@ -352,36 +352,36 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
 
     random_state = np.random.randint(999)
 
-    x_task_a, y_task_a, f_task_a = make_blobs_block("task_a", 0, args.ctx_scaling)
-    y_task_a = y_task_a[:, np.newaxis]
-    l_task_a = (y_task_a > 0).astype("int")
+    x_test_a, y_test_a, f_test_a = make_blobs_block("task_a", 0, args.ctx_scaling)
+    y_test_a = y_test_a[:, np.newaxis]
+    l_test_a = (y_test_a > 0).astype("int")
 
-    x_task_b, y_task_b, f_task_b = make_blobs_block("task_b", 0, args.ctx_scaling)
-    y_task_b = y_task_b[:, np.newaxis]
-    l_task_b = (y_task_b > 0).astype("int")
+    x_test_b, y_test_b, f_test_b = make_blobs_block("task_b", 0, args.ctx_scaling)
+    y_test_b = y_test_b[:, np.newaxis]
+    l_test_b = (y_test_b > 0).astype("int")
 
     if args.ctx_weights is True:
-        x_task_a[:, :25] /= np.linalg.norm(x_task_a[:, :25])
-        x_task_a[:, 25:] /= np.linalg.norm(x_task_a[:, 25:])
-        x_task_b[:, :25] /= np.linalg.norm(x_task_b[:, :25])
-        x_task_b[:, 25:] /= np.linalg.norm(x_task_b[:, 25:])
+        x_test_a[:, :25] /= np.linalg.norm(x_test_a[:, :25])
+        x_test_a[:, 25:] /= np.linalg.norm(x_test_a[:, 25:])
+        x_test_b[:, :25] /= np.linalg.norm(x_test_b[:, :25])
+        x_test_b[:, 25:] /= np.linalg.norm(x_test_b[:, 25:])
 
-    x_in = np.concatenate((x_task_a, x_task_b), axis=0)
-    y_rew = np.concatenate((y_task_a, y_task_b), axis=0)
-    y_true = np.concatenate((l_task_a, l_task_b), axis=0)
-    f_all = np.concatenate((f_task_a, f_task_b), axis=0)
+    x_in = np.concatenate((x_test_a, x_test_b), axis=0)
+    y_rew = np.concatenate((y_test_a, y_test_b), axis=0)
+    y_true = np.concatenate((l_test_a, l_test_b), axis=0)
+    f_all = np.concatenate((f_test_a, f_test_b), axis=0)
 
     # define datasets (duplicates for shuffling)
     data = {}
-    data["x_task_a"] = x_task_a
-    data["y_task_a"] = y_task_a
-    data["l_task_a"] = l_task_a
-    data["f_task_a"] = f_task_a
+    data["x_test_a"] = x_test_a
+    data["y_test_a"] = y_test_a
+    data["l_test_a"] = l_test_a
+    data["f_test_a"] = f_test_a
 
-    data["x_task_b"] = x_task_b
-    data["y_task_b"] = y_task_b
-    data["l_task_b"] = l_task_b
-    data["f_task_b"] = f_task_b
+    data["x_test_b"] = x_test_b
+    data["y_test_b"] = y_test_b
+    data["l_test_b"] = l_test_b
+    data["f_test_b"] = f_test_b
 
     data["x_all"] = x_in
     data["y_all"] = y_rew
@@ -419,7 +419,7 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
                 np.vstack(
                     tuple(
                         [
-                            shuffle(data["x_task_a"], random_state=i + random_state)
+                            shuffle(data["x_test_a"], random_state=i + random_state)
                             for i in range(args.n_episodes)
                         ]
                     )
@@ -427,7 +427,7 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
                 np.vstack(
                     tuple(
                         [
-                            shuffle(data["x_task_b"], random_state=i + random_state)
+                            shuffle(data["x_test_b"], random_state=i + random_state)
                             for i in range(args.n_episodes)
                         ]
                     )
@@ -439,7 +439,7 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
                 np.vstack(
                     tuple(
                         [
-                            shuffle(data["y_task_a"], random_state=i + random_state)
+                            shuffle(data["y_test_a"], random_state=i + random_state)
                             for i in range(args.n_episodes)
                         ]
                     )
@@ -447,7 +447,7 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
                 np.vstack(
                     tuple(
                         [
-                            shuffle(data["y_task_b"], random_state=i + random_state)
+                            shuffle(data["y_test_b"], random_state=i + random_state)
                             for i in range(args.n_episodes)
                         ]
                     )
@@ -459,7 +459,7 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
                 np.vstack(
                     tuple(
                         [
-                            shuffle(data["l_task_a"], random_state=i + random_state)
+                            shuffle(data["l_test_a"], random_state=i + random_state)
                             for i in range(args.n_episodes)
                         ]
                     )
@@ -467,7 +467,7 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
                 np.vstack(
                     tuple(
                         [
-                            shuffle(data["l_task_b"], random_state=i + random_state)
+                            shuffle(data["l_test_b"], random_state=i + random_state)
                             for i in range(args.n_episodes)
                         ]
                     )
@@ -480,8 +480,8 @@ def make_blobs_dataset(args: argparse.Namespace) -> dict:
     if args.centering is True:
         sc = StandardScaler(with_std=False)
         data["x_train"] = sc.fit_transform(data["x_train"])
-        data["x_task_a"] = sc.transform(data["x_task_a"])
-        data["x_task_b"] = sc.transform(data["x_task_b"])
+        data["x_test_a"] = sc.transform(data["x_test_a"])
+        data["x_test_b"] = sc.transform(data["x_test_b"])
         if args.training_schedule == "blocked":
             # remove info about 2nd task during training on 1st task
             data["x_train"][data["x_train"][:, -2] > 0, -1] = 0

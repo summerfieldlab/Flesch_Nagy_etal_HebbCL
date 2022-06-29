@@ -250,19 +250,19 @@ def train_on_blobs(
     y_train = torch.from_numpy(data["y_train"]).float().to(args.device)
 
     # test: create test sets
-    x_a = torch.from_numpy(data["x_task_a"]).float().to(args.device)
-    r_a = torch.from_numpy(data["y_task_a"]).float().to(args.device)
+    x_a = torch.from_numpy(data["x_test_a"]).float().to(args.device)
+    r_a = torch.from_numpy(data["y_test_a"]).float().to(args.device)
 
-    x_b = torch.from_numpy(data["x_task_b"]).float().to(args.device)
-    r_b = torch.from_numpy(data["y_task_b"]).float().to(args.device)
+    x_b = torch.from_numpy(data["x_test_b"]).float().to(args.device)
+    r_b = torch.from_numpy(data["y_test_b"]).float().to(args.device)
 
     x_both = (
-        torch.from_numpy(np.concatenate((data["x_task_a"], data["x_task_b"]), axis=0))
+        torch.from_numpy(np.concatenate((data["x_test_a"], data["x_test_b"]), axis=0))
         .float()
         .to(args.device)
     )
     r_both = (
-        torch.from_numpy(np.concatenate((data["y_task_a"], data["y_task_b"]), axis=0))
+        torch.from_numpy(np.concatenate((data["y_test_a"], data["y_test_b"]), axis=0))
         .float()
         .to(args.device)
     )
