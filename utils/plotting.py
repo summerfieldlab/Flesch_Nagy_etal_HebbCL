@@ -575,8 +575,8 @@ def plot_ghasla_results(data, ws, delta_ws, n_trials, eta, sigma):
     ta = []
     tb = []
     for W in ws:
-        ya = np.maximum((data["x_task_a"] @ W), 0).mean(0)
-        yb = np.maximum((data["x_task_b"] @ W), 0).mean(0)
+        ya = np.maximum((data["x_test_a"] @ W), 0).mean(0)
+        yb = np.maximum((data["x_test_b"] @ W), 0).mean(0)
         ta.append(np.mean((ya > 0) & (yb == 0)))
         tb.append(np.mean((ya == 0) & (yb > 0)))
     plt.plot(ta, color="blue")

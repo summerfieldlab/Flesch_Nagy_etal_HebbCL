@@ -6,10 +6,7 @@ from utils.nnet import from_gpu
 from scipy.spatial.distance import squareform, pdist
 from scipy.stats import zscore, multivariate_normal
 from scipy.optimize import minimize
-from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
-from sklearn.utils import shuffle
-import pandas as pd
 
 
 def sigmoid(x: np.float, L: np.float, k: np.float, x0: np.float) -> np.float:
@@ -274,11 +271,11 @@ def compute_congruency_acc(cmat, cmat_true, n_samp=10000):
     Returns:
         int: accuracies on congruent and incongruent trials
     """
-    
+
     c = np.array(
         [(cmat > np.random.rand(*cmat.shape)) == cmat_true for _ in range(n_samp)]
     ).mean(0)
-    
+
     acc_congruent = (np.mean(c[:2, :2]) + np.mean(c[3:, 3:])) / 2
     acc_incongruent = (np.mean(c[:2, 3:]) + np.mean(c[3:, :2])) / 2
     return acc_congruent, acc_incongruent
@@ -363,7 +360,7 @@ def compute_sparsity_stats(yout):
     """
     # yout is n_units x n_trials
     # 1. average within contexts
-    assert yout.shape == (100, 50)
+    # assert yout.shape == (100, 50)
     x = np.vstack((np.mean(yout[:, 0:25], 1).T, np.mean(yout[:, 25:-1], 1).T))
     # should yield a 2xn_hidden vector
     # now count n dead units (i.e. return 0 in both tasks)
@@ -413,58 +410,12 @@ def gen2Dgauss(x_mu=0.0, y_mu=0.0, xy_sigma=0.1, n=20):
     return gausspdf.pdf(x_in)
 
 
-def mk_block_wctx(context, do_shuffle, c_scaling=1):
-    """
-    generates block of experiment
-    Input:
-      - task  : 'task_a' or 'task_b'
-      - do_shuffle: True or False, shuffles  values
-    """
-    resolution = 5
-    n_units = resolution ** 2
-    l, b = np.meshgrid(np.linspace(0.2, 0.8, 5), np.linspace(0.2, 0.8, 5))
-    b = b.flatten()
-    l = l.flatten()
-    r_s, r_n = np.meshgrid(np.linspace(-2, 2, 5), np.linspace(-2, 2, 5))
-    r_s = r_s.flatten()
-    r_n = r_n.flatten()
-    val_l, val_b = np.meshgrid(np.linspace(1, 5, 5), np.linspace(1, 5, 5))
-    val_b = val_b.flatten()
-    val_l = val_l.flatten()
-
-    # plt.figure()
-    ii_sub = 1
-    blobs = np.empty((25, n_units))
-    for ii in range(0, 25):
-        blob = gen2Dgauss(x_mu=b[ii], y_mu=l[ii], xy_sigma=0.08, n=resolution)
-        blob = blob / np.max(blob)
-        ii_sub += 1
-        blobs[ii, :] = blob.flatten()
-    x = blobs
-    if context == "task_a":
-        x1 = np.append(blobs, c_scaling * np.ones((blobs.shape[0], 1)), axis=1)
-        x1 = np.append(x1, np.zeros((blobs.shape[0], 1)), axis=1)
-        reward = r_n
-    elif context == "task_b":
-        x1 = np.append(blobs, np.zeros((blobs.shape[0], 1)), axis=1)
-        x1 = np.append(x1, c_scaling * np.ones((blobs.shape[0], 1)), axis=1)
-        reward = r_s
-
-    feature_vals = np.vstack((val_b, val_l)).T
-    if do_shuffle:
-        ii_shuff = np.random.permutation(25)
-        x1 = x1[ii_shuff, :]
-        feature_vals = feature_vals[ii_shuff, :]
-        reward = reward[ii_shuff]
-    return x1, reward, feature_vals
-
-
 def gen_modelrdms(ctx_offset=1):
     models = []
     ctx = np.concatenate(
         (ctx_offset * np.ones((25, 1)), np.zeros((25, 1))), axis=0
     ).reshape(50, 1)
-    ## model rdms:
+    # model rdms:
     a, b = np.meshgrid(np.linspace(-2, 2, 5), np.linspace(-2, 2, 5))
     # grid model
     gridm = np.concatenate(
@@ -475,7 +426,8 @@ def gen_modelrdms(ctx_offset=1):
 
     # # rotated grid model
     # gridm = np.concatenate((a.flatten()[np.newaxis,:],b.flatten()[np.newaxis,:]),axis=0).T
-    # gridm[25:, :] = gridm[25:, :] @ np.array([[np.cos(np.deg2rad(270)), -np.sin(np.deg2rad(270))], [np.sin(np.deg2rad(270)), np.cos(np.deg2rad(270))]])
+    # gridm[25:, :] = gridm[25:, :] @ np.array([[np.cos(np.deg2rad(270)), -np.sin(np.deg2rad(270))],
+    # [np.sin(np.deg2rad(270)), np.cos(np.deg2rad(270))]])
     # gridm = np.concatenate((np.tile(gridm,(2,1)),ctx),axis=1)
     # models.append(squareform(pdist(gridm,metric='euclidean')))
 
@@ -536,179 +488,3 @@ def gen_modelrdms(ctx_offset=1):
     rdms = np.asarray(models)
 
     return rdms, dmat
-
-
-def make_dataset(
-    ctx_scaling=1,
-    training_schedule="blocked",
-    n_episodes=10,
-    ctx_avg=True,
-    ctx_avg_window=10,
-    centering=True,
-):
-    """
-    makes dataset for experiment
-    """
-
-    random_state = np.random.randint(999)
-
-    x_task_a, y_task_a, f_task_a = mk_block_wctx("task_a", 0, ctx_scaling)
-    y_task_a = y_task_a[:, np.newaxis]
-    l_task_a = (y_task_a > 0).astype("int")
-
-    x_task_b, y_task_b, f_task_b = mk_block_wctx("task_b", 0, ctx_scaling)
-    y_task_b = y_task_b[:, np.newaxis]
-    l_task_b = (y_task_b > 0).astype("int")
-
-    x_in = np.concatenate((x_task_a, x_task_b), axis=0)
-    y_rew = np.concatenate((y_task_a, y_task_b), axis=0)
-    y_true = np.concatenate((l_task_a, l_task_b), axis=0)
-    f_all = np.concatenate((f_task_a, f_task_b), axis=0)
-
-    # define datasets (duplicates for shuffling)
-    data = {}
-    data["x_task_a"] = x_task_a
-    data["y_task_a"] = y_task_a
-    data["l_task_a"] = l_task_a
-    data["f_task_a"] = f_task_a
-
-    data["x_task_b"] = x_task_b
-    data["y_task_b"] = y_task_b
-    data["l_task_b"] = l_task_b
-    data["f_task_b"] = f_task_b
-
-    data["x_all"] = x_in
-    data["y_all"] = y_rew
-    data["l_all"] = y_true
-    data["f_all"] = f_all
-
-    if training_schedule == "interleaved":
-        data["x_train"] = np.vstack(
-            tuple(
-                [
-                    shuffle(data["x_all"], random_state=i + random_state)
-                    for i in range(n_episodes)
-                ]
-            )
-        )
-        data["y_train"] = np.vstack(
-            tuple(
-                [
-                    shuffle(data["y_all"], random_state=i + random_state)
-                    for i in range(n_episodes)
-                ]
-            )
-        )
-        data["l_train"] = np.vstack(
-            tuple(
-                [
-                    shuffle(data["l_all"], random_state=i + random_state)
-                    for i in range(n_episodes)
-                ]
-            )
-        )
-    elif training_schedule == "blocked":
-        data["x_train"] = np.vstack(
-            (
-                np.vstack(
-                    tuple(
-                        [
-                            shuffle(data["x_task_a"], random_state=i + random_state)
-                            for i in range(n_episodes)
-                        ]
-                    )
-                ),
-                np.vstack(
-                    tuple(
-                        [
-                            shuffle(data["x_task_b"], random_state=i + random_state)
-                            for i in range(n_episodes)
-                        ]
-                    )
-                ),
-            )
-        )
-        data["y_train"] = np.vstack(
-            (
-                np.vstack(
-                    tuple(
-                        [
-                            shuffle(data["y_task_a"], random_state=i + random_state)
-                            for i in range(n_episodes)
-                        ]
-                    )
-                ),
-                np.vstack(
-                    tuple(
-                        [
-                            shuffle(data["y_task_b"], random_state=i + random_state)
-                            for i in range(n_episodes)
-                        ]
-                    )
-                ),
-            )
-        )
-        data["l_train"] = np.vstack(
-            (
-                np.vstack(
-                    tuple(
-                        [
-                            shuffle(data["l_task_a"], random_state=i + random_state)
-                            for i in range(n_episodes)
-                        ]
-                    )
-                ),
-                np.vstack(
-                    tuple(
-                        [
-                            shuffle(data["l_task_b"], random_state=i + random_state)
-                            for i in range(n_episodes)
-                        ]
-                    )
-                ),
-            )
-        )
-    else:
-        print("Unknown training schedule parameter")
-
-    if ctx_avg and ctx_avg_window > 0:
-        data["x_train"][:, -2] = (
-            pd.Series(data["x_train"][:, -2])
-            .rolling(window=ctx_avg_window, min_periods=1)
-            .mean()
-        )
-        data["x_train"][:, -1] = (
-            pd.Series(data["x_train"][:, -1])
-            .rolling(window=ctx_avg_window, min_periods=1)
-            .mean()
-        )
-
-    if centering == True:
-        sc = StandardScaler(with_std=False)
-        data["x_train"] = sc.fit_transform(data["x_train"])
-        data["x_task_a"] = sc.transform(data["x_task_a"])
-        data["x_task_b"] = sc.transform(data["x_task_b"])
-        data["x_all"] = sc.transform(data["x_all"])
-
-    return data
-
-
-def make_dmat(features):
-    """creates design matrix for task selectivity analysis
-
-    Args:
-        features (np array): n-x-2 matrix of feature values
-
-    Returns:
-        dmat: design matrix with z-scored predictors, one per feature & task
-    """
-    dmat = np.zeros((50, 4))
-    # irrel in task a
-    dmat[:25, 0] = features[:25, 0]
-    # rel in task a
-    dmat[:25, 1] = features[:25, 1]
-    # rel in task b
-    dmat[25:, 2] = features[25:, 0]
-    # irrel in task b
-    dmat[25:, 3] = features[25:, 1]
-    return zscore(dmat, axis=0, ddof=1)
