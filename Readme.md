@@ -1,4 +1,8 @@
 # Code Repository for Flesch, Nagy et al: "Modelling continual learning in humans with Hebbian context gating and exponentially decaying task signals"
+[![arXiv](https://img.shields.io/badge/arXiv-2203.11560-b31b1b.svg)](https://arxiv.org/abs/2203.11560) [![GitHub license](https://badgen.net/github/license/Summerfieldlab/Flesch_Nagy_etal_HebbCL)](https://github.com/Summerfieldlab/Flesch_Nagy_etal_HebbCL/blob/master/LICENSE) [![GitHub issues](https://img.shields.io/github/issues/Summerfieldlab/Flesch_Nagy_etal_HebbCL.svg)](https://GitHub.com/Summerfieldlab/Flesch_Nagy_etal_HebbCL/issues/) [![GitHub pull-requests](https://img.shields.io/github/issues-pr/Summerfieldlab/Flesch_Nagy_etal_HebbCL.svg)](https://GitHub.com/Summerfieldlab/Flesch_Nagy_etal_HebbCL/pull/) 
+ [![GitHub forks](https://img.shields.io/github/forks/Summerfieldlab/Flesch_Nagy_etal_HebbCL.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/Summerfieldlab/Flesch_Nagy_etal_HebbCL/network/)
+ [![GitHub stars](https://img.shields.io/github/stars/Summerfieldlab/Flesch_Nagy_etal_HebbCL.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/Summerfieldlab/Flesch_Nagy_etal_HebbCL/stargazers/)  
+
 The repo is work in progress, stay tuned!
 
 
