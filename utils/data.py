@@ -181,6 +181,7 @@ def make_trees_blocks(
     n_blocks: int = 10,
     c_scaling: int = 1,
     n_max: int = 199,
+    filepath: str = "../datasets/"
 ) -> Tuple[np.array, np.array, np.array]:
     """todo
 
@@ -190,6 +191,7 @@ def make_trees_blocks(
         whichset (str, optional): todo. Defaults to "training".
         n_blocks (int, optional): todo. Defaults to 10.
         c_scaling (int, optional): todo. Defaults to 1.
+        filepath( str, optional): path to datasets. Defaults to "../datasets/"
 
     Returns:
         Tuple[np.array, np.array, np.array]: todo
@@ -203,6 +205,7 @@ def make_trees_blocks(
             c_scaling=c_scaling,
             exemplar=e,
             whichset=whichset,
+            filepath=filepath,
         )
         x_a = np.vstack((x_a, xe)) if x_a is not None else xe
         y_a = np.vstack((y_a, ye)) if y_a is not None else ye
@@ -210,12 +213,12 @@ def make_trees_blocks(
     return x_a, y_a, f_a
 
 
-def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> dict:
+def make_trees_dataset(args: argparse.Namespace, filepath: str = "../datasets/") -> dict:
     """todo
 
     Args:
         args (argparse.Namespace): todo
-        whichphase (str, optional): todo. Defaults to "train".
+        filepath( str, optional): path to datasets. Defaults to "../datasets/"
 
     Returns:
         dict: todo
@@ -229,6 +232,7 @@ def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> d
         c_scaling=args.ctx_scaling,
         n_blocks=args.n_episodes // 2,
         n_max=399,
+        filepath=filepath,
     )
     x_b, y_b, f_b = make_trees_blocks(
         whichtask="task_b",
@@ -237,6 +241,7 @@ def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> d
         c_scaling=args.ctx_scaling,
         n_blocks=args.n_episodes // 2,
         n_max=399,
+        filepath=filepath,
     )
 
     data = {}
@@ -293,6 +298,7 @@ def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> d
         c_scaling=args.ctx_scaling,
         n_blocks=10,
         n_max=199,
+        filepath=filepath,
     )
     data["x_test_b"], data["y_test_b"], data["f_test_b"] = make_trees_blocks(
         whichtask="task_b",
@@ -301,6 +307,7 @@ def make_trees_dataset(args: argparse.Namespace, whichphase: str = "train") -> d
         c_scaling=args.ctx_scaling,
         n_blocks=10,
         n_max=199,
+        filepath=filepath,
     )
 
     if args.centering is True:
