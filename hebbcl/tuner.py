@@ -11,7 +11,7 @@ from ray.tune.suggest.bohb import TuneBOHB
 from ray.tune.suggest import SearchAlgorithm
 from ray.tune.suggest.suggestion import Searcher
 from ray.tune.schedulers import HyperBandForBOHB, ASHAScheduler, TrialScheduler
-from typing import Union
+from typing import Union, Mapping
 
 
 class HPOTuner(object):
@@ -59,7 +59,13 @@ class HPOTuner(object):
             }
         )
 
-    def tune(self, time_budget: int = None, n_samples: int = None, resume: bool = False):
+    def tune(
+        self,
+        time_budget: int = None,
+        n_samples: int = None,
+        resume: bool = False,
+        resources_per_trial: Mapping[str, float] = {"cpu": 3, "gpu": 0},
+    ):
         """runs the tuner. time budget and n trials set in constructor can be overwritten here
 
         Args:
@@ -77,7 +83,7 @@ class HPOTuner(object):
             scheduler=self._set_scheduler(),
             metric=self.metric,
             mode=self.mode,
-            resources_per_trial={"cpu": 1, "gpu": 0},
+            resources_per_trial=resources_per_trial,
             verbose=1,
             resume=resume,
         )
@@ -109,7 +115,7 @@ class HPOTuner(object):
             data = utils.data.make_blobs_dataset(self.args)
         elif self.dataset == "trees":
             datapath = os.environ.get("TUNE_ORIG_WORKING_DIR") + self.filepath
-            
+
             data = utils.data.make_trees_dataset(
                 self.args,
                 filepath=datapath,
