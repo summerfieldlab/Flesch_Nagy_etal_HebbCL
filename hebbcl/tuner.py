@@ -304,7 +304,7 @@ def save_tuner_results(
         "mean_acc",
         "done",
     ]
-    df = df[[c for c in df if c in cols[:2] or c.startswith("config")]]
+    df = df[[c for c in df if c in cols or c.startswith("config")]]
     df = df[df["done"] is True]
     df = df.drop(columns=["done"])
     df = df.dropna()
