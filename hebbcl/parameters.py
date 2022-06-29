@@ -1,13 +1,118 @@
 import argparse
+from typing import Union
 
 
-def boolean_string(s):
-    """
-    helper function, turns string into boolean variable
+def boolean_string(s: str) -> bool:
+    """helper function, turns string into boolean variable
+
+    Args:
+        s (str): input string
+
+    Raises:
+        ValueError: if s neither False nor True
+
+    Returns:
+        bool: s turned into boolean
     """
     if s not in {"False", "True"}:
         raise ValueError("Not a valid boolean string")
     return s == "True"
+
+
+def none_or_str(value: str) -> Union[str, None]:
+    """helper function, turns "None" into proper None
+
+    Args:
+        value (str): a string
+
+    Returns:
+        Union[str, None]: None if input is "None" or "none"
+    """
+    if value == "None" or value == "none":
+        return None
+    return value
+
+
+def set_hpo_args(
+    args: argparse.Namespace, whichmodel: str = "interleaved_vanilla_1ctx"
+) -> argparse.Namespace:
+    """sets args to specific values depending on target model and curriculum
+
+    Args:
+        args (argparse.Namespace): parsed arguments
+        whichmodel (str, optional): target model & curriculum.
+        Defaults to "interleaved_vanilla_1ctx".
+
+    Returns:
+        argparse.Namespace: modified arguments
+    """
+
+    args.n_episodes = 200
+    args.n_layers = 2
+    args.n_hidden = 100
+    args.n_features = 1730
+    args.ctx_avg = False
+
+    args.hpo_fixedseed = True
+    args.hpo_scheduler = "bohb"
+    args.hpo_searcher = "bohb"
+
+    if whichmodel == "interleaved_vanilla_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "interleaved"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "blocked_vanilla_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "blocked"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "interleaved_vanilla_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "interleaved"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "blocked_vanilla_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "blocked"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "interleaved_ojactx_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "interleaved"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+
+    elif whichmodel == "blocked_ojactx_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "blocked"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+
+    elif whichmodel == "interleaved_ojactx_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "interleaved"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+
+    elif whichmodel == "blocked_ojactx_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "blocked"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+    return args
 
 
 # parameters
@@ -37,6 +142,7 @@ parser.add_argument(
 )
 
 # network parameters
+parser.add_argument("--n_layers", default=1, type=int, help="number of hidden layers")
 parser.add_argument(
     "--n_features", default=27, type=int, help="number of stimulus units"
 )
@@ -46,9 +152,15 @@ parser.add_argument(
     "--weight_init", default=1e-2, type=float, help="initial input weight scale"
 )
 parser.add_argument(
-    "--ctx_w_init", default=0.5, type=float, help="initial context weight scale"
+    "--ctx_w_init", default=1e-2, type=float, help="initial context weight scale"
 )
 
+parser.add_argument(
+    "--ctx_twice",
+    default=False,
+    type=boolean_string,
+    help="apply context to both hidden layers",
+)
 # optimiser parameters
 parser.add_argument(
     "--lrate_sgd", default=1e-2, type=float, help="learning rate for SGD"
@@ -63,7 +175,10 @@ parser.add_argument(
     help="normalising const. for hebbian update",
 )
 parser.add_argument(
-    "--gating", default="oja_ctx", help="any of: None, manual, GHA, SLA, oja, oja_ctx"
+    "--gating",
+    default="oja_ctx",
+    type=none_or_str,
+    help="any of: None, manual, GHA, SLA, oja, oja_ctx",
 )
 parser.add_argument(
     "--loss_funct",
@@ -150,9 +265,4 @@ parser.add_argument(
 
 
 # miscellaneous
-parser.add_argument(
-    "--seed",
-    default=1234,
-    type=int,
-    help="random seed"
-)
+parser.add_argument("--seed", default=1234, type=int, help="random seed")
