@@ -52,7 +52,7 @@ class HPOTuner(object):
             n_samples (int, optional): number of trials. Defaults to 100.
         """
         # run ray tune
-        analysis = tune.run(
+        self._analysis = tune.run(
             lambda cfg, checkpoint_dir: self._trainable(cfg, checkpoint_dir),
             config=self._get_config(),
             time_budget_s=time_budget if time_budget else self.time_budget,
@@ -64,10 +64,12 @@ class HPOTuner(object):
             resources_per_trial={"cpu": 1, "gpu": 0},
             verbose=1,
         )
-        self.best_cfg = analysis.get_best_config(metric=self.metric, mode=self.mode)
+        self.best_cfg = self._analysis.get_best_config(
+            metric=self.metric, mode=self.mode
+        )
 
         # results as dataframe
-        self.results = analysis.results_df
+        self.results = self._analysis.results_df
 
     def _trainable(self, config: dict, checkpoint_dir: str = None):  # noqa E231
         """training loop for nnet
@@ -150,12 +152,12 @@ class HPOTuner(object):
         """
         if self.args.hpo_scheduler == "bohb":
             scheduler = HyperBandForBOHB(
-                time_attr="training_iteration",                
+                time_attr="training_iteration",
                 max_t=self.time_budget // 2,
             )
         elif self.args.hpo_scheduler == "asha":
             scheduler = ASHAScheduler(
-                time_attr="training_iteration",  # TODO what's this?                
+                time_attr="training_iteration",  # TODO what's this?
                 max_t=self.time_budget // 2,
                 grace_period=10,
                 reduction_factor=3,
