@@ -5,7 +5,9 @@ import random
 import argparse
 import utils
 import hebbcl
+import pickle
 import ray
+import pandas as pd
 from ray import tune
 from ray.tune.suggest.bohb import TuneBOHB
 from ray.tune.suggest import SearchAlgorithm
@@ -22,6 +24,7 @@ class HPOTuner(object):
         metric: str = "loss",
         dataset: str = "blobs",
         filepath: str = "/../datasets/",
+        working_dir: str = "../ray_tune/"
     ):
         """hyperparameter optimisation for nnets
 
@@ -31,6 +34,7 @@ class HPOTuner(object):
             metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
             dataset (str, optional): which dataset to use. can be trees or blobs. Defaults to "blobs".
             filepath (str, optional): relative path to datasets. Defaults to "../datasets/".
+            working_dir (str, optional): relative path to working dir for ray environment. Defaults to "../ray_tune/"
         """
 
         self.metric = self._set_metric(metric)
@@ -53,7 +57,7 @@ class HPOTuner(object):
         ray.shutdown()
         ray.init(
             runtime_env={
-                "working_dir": "../ray_tune/",
+                "working_dir": working_dir,
                 "env_vars": {"TUNE_ORIG_WORKING_DIR": os.getcwd()},
                 "py_modules": [utils, hebbcl],
             }
@@ -282,3 +286,40 @@ class HPOTuner(object):
             return "max"
         else:
             raise ValueError("Invalid metric provided (choose 'loss' or 'acc'")
+
+
+def save_tuner_results(
+    df: pd.DataFrame, args: argparse.Namespace, filename: str = "results"
+) -> argparse.Namespace:
+    """saves results from HPOTuner call
+
+    Args:
+        df (pd.DataFrame): table with results for individual trials
+        args (argparse.Namespace): various configuration parameters
+        filename (str, optional): name of file on disk. Defaults to "results".
+    """
+    # preprocessing ....
+    df = df[
+        [
+            "mean_loss",
+            "mean_acc",
+            "config.lrate_sgd",
+            "config.lrate_hebb",
+            "config.ctx_scaling",
+            "config.seed",
+            "done",
+        ]
+    ]
+    df = df[df["done"] is True]
+    df = df.drop(columns=["done"])
+    df = df.dropna()
+    df = df.sort_values("mean_acc", ascending=False)
+
+    args = dict(sorted(vars(args).items(), key=lambda k: k[0]))
+    results = {
+        "df": df,
+        "config": args,
+    }
+    # and store away ....
+    with open("results/raytune_" + filename + ".pkl", "wb") as f:
+        pickle.dump(results, f)
