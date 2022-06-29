@@ -59,12 +59,13 @@ class HPOTuner(object):
             }
         )
 
-    def tune(self, time_budget: int = None, n_samples: int = None):
+    def tune(self, time_budget: int = None, n_samples: int = None, resume: bool = False):
         """runs the tuner. time budget and n trials set in constructor can be overwritten here
 
         Args:
             time_budget (int, optional): time in seconds allocated to the fitting proces. Defaults to 100.
             n_samples (int, optional): number of trials. Defaults to 100.
+            resume (bool, optional): warm start. Defaults to False.
         """
         # run ray tune
         self._analysis = tune.run(
@@ -78,6 +79,7 @@ class HPOTuner(object):
             mode=self.mode,
             resources_per_trial={"cpu": 1, "gpu": 0},
             verbose=1,
+            resume=resume,
         )
         self.best_cfg = self._analysis.get_best_config(
             metric=self.metric, mode=self.mode
