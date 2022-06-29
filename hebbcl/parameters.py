@@ -1,20 +1,118 @@
 import argparse
+from typing import Union
 
 
-def boolean_string(s):
-    """
-    helper function, turns string into boolean variable
+def boolean_string(s: str) -> bool:
+    """helper function, turns string into boolean variable
+
+    Args:
+        s (str): input string
+
+    Raises:
+        ValueError: if s neither False nor True
+
+    Returns:
+        bool: s turned into boolean
     """
     if s not in {"False", "True"}:
         raise ValueError("Not a valid boolean string")
     return s == "True"
 
 
-def none_or_str(value):
-    """helper function, turns "None" into proper None"""
+def none_or_str(value: str) -> Union[str, None]:
+    """helper function, turns "None" into proper None
+
+    Args:
+        value (str): a string
+
+    Returns:
+        Union[str, None]: None if input is "None" or "none"
+    """
     if value == "None" or value == "none":
         return None
     return value
+
+
+def set_hpo_args(
+    args: argparse.Namespace, whichmodel: str = "interleaved_vanilla_1ctx"
+) -> argparse.Namespace:
+    """sets args to specific values depending on target model and curriculum
+
+    Args:
+        args (argparse.Namespace): parsed arguments
+        whichmodel (str, optional): target model & curriculum.
+        Defaults to "interleaved_vanilla_1ctx".
+
+    Returns:
+        argparse.Namespace: modified arguments
+    """
+
+    args.n_episodes = 200
+    args.n_layers = 2
+    args.n_hidden = 100
+    args.n_features = 1730
+    args.ctx_avg = False
+
+    args.hpo_fixedseed = True
+    args.hpo_scheduler = "bohb"
+    args.hpo_searcher = "bohb"
+
+    if whichmodel == "interleaved_vanilla_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "interleaved"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "blocked_vanilla_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "blocked"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "interleaved_vanilla_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "interleaved"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "blocked_vanilla_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "blocked"
+        args.perform_hebb = False
+        args.centering = False
+        args.gating = None
+
+    elif whichmodel == "interleaved_ojactx_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "interleaved"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+
+    elif whichmodel == "blocked_ojactx_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "blocked"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+
+    elif whichmodel == "interleaved_ojactx_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "interleaved"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+
+    elif whichmodel == "blocked_ojactx_2ctx":
+        args.ctx_twice = True
+        args.training_schedule = "blocked"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja_ctx"
+    return args
 
 
 # parameters
