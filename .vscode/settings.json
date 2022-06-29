@@ -1,5 +1,10 @@
 {
     "python.pythonPath": "C:\\Users\\Timo\\anaconda3\\envs\\pytorch\\python.exe",
     "python.linting.flake8Enabled": true,
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

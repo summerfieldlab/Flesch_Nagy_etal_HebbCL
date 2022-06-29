@@ -10,6 +10,13 @@ def boolean_string(s):
     return s == "True"
 
 
+def none_or_str(value):
+    """helper function, turns "None" into proper None"""
+    if value == "None" or value == "none":
+        return None
+    return value
+
+
 # parameters
 parser = argparse.ArgumentParser(description="Hebbian Continual Learning simulations")
 
@@ -70,7 +77,10 @@ parser.add_argument(
     help="normalising const. for hebbian update",
 )
 parser.add_argument(
-    "--gating", default="oja_ctx", help="any of: None, manual, GHA, SLA, oja, oja_ctx"
+    "--gating",
+    default="oja_ctx",
+    type=none_or_str,
+    help="any of: None, manual, GHA, SLA, oja, oja_ctx",
 )
 parser.add_argument(
     "--loss_funct",
