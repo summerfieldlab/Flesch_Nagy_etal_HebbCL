@@ -24,7 +24,7 @@ class HPOTuner(object):
         metric: str = "loss",
         dataset: str = "blobs",
         filepath: str = "/../datasets/",
-        working_dir: str = "../ray_tune/"
+        working_dir: str = "../ray_tune/",
     ):
         """hyperparameter optimisation for nnets
 
@@ -299,17 +299,12 @@ def save_tuner_results(
         filename (str, optional): name of file on disk. Defaults to "results".
     """
     # preprocessing ....
-    df = df[
-        [
-            "mean_loss",
-            "mean_acc",
-            "config.lrate_sgd",
-            "config.lrate_hebb",
-            "config.ctx_scaling",
-            "config.seed",
-            "done",
-        ]
+    cols = [
+        "mean_loss",
+        "mean_acc",
+        "done",
     ]
+    df = df[[c for c in df if c in cols[:2] or c.startswith("config")]]
     df = df[df["done"] is True]
     df = df.drop(columns=["done"])
     df = df.dropna()
