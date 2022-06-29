@@ -299,15 +299,16 @@ def save_tuner_results(
         filename (str, optional): name of file on disk. Defaults to "results".
     """
     # preprocessing ....
+    # print(df.columns)
     cols = [
         "mean_loss",
         "mean_acc",
         "done",
     ]
     df = df[[c for c in df if c in cols or c.startswith("config")]]
-    df = df[df["done"] is True]
-    df = df.drop(columns=["done"])
-    df = df.dropna()
+    # df = df[df["done"] is True]
+    # df = df.drop(columns=["done"])
+    # df = df.dropna()
     df = df.sort_values("mean_acc", ascending=False)
 
     args = dict(sorted(vars(args).items(), key=lambda k: k[0]))

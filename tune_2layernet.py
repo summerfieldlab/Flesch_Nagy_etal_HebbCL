@@ -22,7 +22,7 @@ if __name__ == "__main__":
         # init tuner
         tuner = HPOTuner(
             args,
-            time_budget=60 * 15,
+            time_budget=60 * 30,
             metric="acc",
             dataset="trees",
             filepath="/datasets/",
