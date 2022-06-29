@@ -15,7 +15,7 @@ from typing import Union
 
 class HPOTuner(object):
     def __init__(
-        self, args: argparse.Namespace, time_budget: int = 100, metric: str = "loss"
+        self, args: argparse.Namespace, time_budget: int = 100, metric: str = "loss", dataset: str = "blobs"
     ):
         """hyperparameter optimisation for nnets
 
@@ -23,6 +23,7 @@ class HPOTuner(object):
             args (ArgumentParser): collection of neural network training parameters
             time_budget (int, optional): time budget allocated to the fitting process (in seconds). Defaults to 100.
             metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
+            dataset (str, optional): which dataset to use. can be trees or blobs. Defaults to "blobs".
         """
 
         self.metric = self._set_metric(metric)
@@ -32,7 +33,9 @@ class HPOTuner(object):
         self.args = args
 
         self.best_cfg = None
-        self.results = None
+        self.results = None 
+        
+        self.dataset = dataset       
 
         if self.args.hpo_fixedseed:
             np.random.seed(self.args.seed)
@@ -88,13 +91,13 @@ class HPOTuner(object):
             setattr(self.args, k, v)
 
         # get dataset
-        data = utils.data.make_blobs_dataset(self.args)
+        if self.dataset == "blobs":
+            data = utils.data.make_blobs_dataset(self.args)
+        elif self.dataset == "trees":
+            data = utils.data.make_trees_dataset(self.args)
 
         # instantiate model and hebbcl.trainer.Optimiser
-        if self.args.gating == "manual":
-            model = hebbcl.model.Gatednet(self.args)
-        else:
-            model = hebbcl.model.Nnet(self.args)
+        model = hebbcl.model.ModelFactory.create(self.args)
         optim = hebbcl.trainer.Optimiser(self.args)
 
         # send model and data to device
@@ -104,14 +107,14 @@ class HPOTuner(object):
 
         x_both = (
             torch.from_numpy(
-                np.concatenate((data["x_task_a"], data["x_task_b"]), axis=0)
+                np.concatenate((data["x_test_a"], data["x_test_b"]), axis=0)
             )
             .float()
             .to(self.args.device)
         )
         r_both = (
             torch.from_numpy(
-                np.concatenate((data["y_task_a"], data["y_task_b"]), axis=0)
+                np.concatenate((data["y_test_a"], data["y_test_b"]), axis=0)
             )
             .float()
             .to(self.args.device)
@@ -169,31 +172,48 @@ class HPOTuner(object):
 
     def _get_config(self) -> dict:
         """retrieves model-specific HPO config"""
-        if self.args.gating == "SLA":
-            config = {
-                "lrate_sgd": tune.loguniform(1e-4, 1e-1),
-                "lrate_hebb": tune.loguniform(1e-4, 1e-1),
-                "normaliser": tune.uniform(1, 20),
-                "n_episodes": tune.choice([200, 500, 1000]),
-                "sla": tune.grid_search([0, 1]),
-            }
-        elif self.args.gating == "manual":
-            config = {
-                "lrate_sgd": tune.loguniform(1e-3, 1e-1),
-                "n_episodes": tune.choice([200, 500, 1000]),
-                "weight_init": tune.loguniform(1e-4, 1e-3),
-            }
-        elif (self.args.gating == "oja") or (self.args.gating == "oja_ctx"):
-            config = {
-                "lrate_sgd": tune.loguniform(1e-4, 1e-1),
-                "lrate_hebb": tune.loguniform(1e-4, 1e-1),
-                "ctx_scaling": tune.randint(1, 8),
-            }
-        elif self.args.gating is None:
-            config = {
-                "lrate_sgd": tune.loguniform(1e-3, 1e-1),
-                "n_episodes": tune.choice([200, 500, 1000]),
-            }
+        if self.args.n_layers == 1:
+            if self.args.gating == "SLA":
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-4, 1e-1),
+                    "lrate_hebb": tune.loguniform(1e-4, 1e-1),
+                    "normaliser": tune.uniform(1, 20),
+                    "n_episodes": tune.choice([200, 500, 1000]),
+                    "sla": tune.grid_search([0, 1]),
+                }
+            elif self.args.gating == "manual":
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-3, 1e-1),
+                    "n_episodes": tune.choice([200, 500, 1000]),
+                    "weight_init": tune.loguniform(1e-4, 1e-3),
+                }
+            elif (self.args.gating == "oja") or (self.args.gating == "oja_ctx"):
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-4, 1e-1),
+                    "lrate_hebb": tune.loguniform(1e-4, 1e-1),
+                    "ctx_scaling": tune.randint(1, 8),
+                }
+            elif self.args.gating is None:
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-3, 1e-1),
+                    "n_episodes": tune.choice([200, 500, 1000]),
+                }
+        elif self.args.n_layers == 2:
+            if self.args.gating is None:
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-5, 1e-1),
+                    "ctx_scaling": tune.randint(1, 8),
+                }
+            elif self.args.gating == "oja_ctx":
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-5, 1e-1),
+                    "lrate_hebb": tune.loguniform(1e-4, 1e-1),
+                    "ctx_scaling": tune.randint(1, 8),
+                }
+            else:
+                raise NotImplementedError(
+                    "gating strategy not implemented for two layer net"
+                )
 
         if self.args.hpo_fixedseed:
             config["seed"] = tune.randint(0, 10000)
