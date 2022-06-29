@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import random
@@ -15,7 +16,12 @@ from typing import Union
 
 class HPOTuner(object):
     def __init__(
-        self, args: argparse.Namespace, time_budget: int = 100, metric: str = "loss", dataset: str = "blobs"
+        self,
+        args: argparse.Namespace,
+        time_budget: int = 100,
+        metric: str = "loss",
+        dataset: str = "blobs",
+        filepath: str = "/../datasets/",
     ):
         """hyperparameter optimisation for nnets
 
@@ -24,6 +30,7 @@ class HPOTuner(object):
             time_budget (int, optional): time budget allocated to the fitting process (in seconds). Defaults to 100.
             metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
             dataset (str, optional): which dataset to use. can be trees or blobs. Defaults to "blobs".
+            filepath (str, optional): relative path to datasets. Defaults to "../datasets/".
         """
 
         self.metric = self._set_metric(metric)
@@ -33,9 +40,10 @@ class HPOTuner(object):
         self.args = args
 
         self.best_cfg = None
-        self.results = None 
-        
-        self.dataset = dataset       
+        self.results = None
+
+        self.dataset = dataset
+        self.filepath = filepath
 
         if self.args.hpo_fixedseed:
             np.random.seed(self.args.seed)
@@ -44,7 +52,11 @@ class HPOTuner(object):
 
         ray.shutdown()
         ray.init(
-            runtime_env={"working_dir": "../ray_tune/", "py_modules": [utils, hebbcl]}
+            runtime_env={
+                "working_dir": "../ray_tune/",
+                "env_vars": {"TUNE_ORIG_WORKING_DIR": os.getcwd()},
+                "py_modules": [utils, hebbcl],
+            }
         )
 
     def tune(self, time_budget: int = None, n_samples: int = None):
@@ -94,7 +106,12 @@ class HPOTuner(object):
         if self.dataset == "blobs":
             data = utils.data.make_blobs_dataset(self.args)
         elif self.dataset == "trees":
-            data = utils.data.make_trees_dataset(self.args)
+            datapath = os.environ.get("TUNE_ORIG_WORKING_DIR") + self.filepath
+            
+            data = utils.data.make_trees_dataset(
+                self.args,
+                filepath=datapath,
+            )
 
         # instantiate model and hebbcl.trainer.Optimiser
         model = hebbcl.model.ModelFactory.create(self.args)
