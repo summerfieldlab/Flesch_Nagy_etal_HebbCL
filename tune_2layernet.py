@@ -5,14 +5,14 @@ from hebbcl.tuner import HPOTuner, save_tuner_results
 if __name__ == "__main__":
     
     configs = [
-        "trees_interleaved_vanilla_1ctx",
-        "trees_blocked_vanilla_1ctx",
-        "trees_interleaved_vanilla_2ctx",
-        "trees_blocked_vanilla_2ctx",
-        "trees_interleaved_ojactx_1ctx",
-        "trees_blocked_ojactx_1ctx",
-        "trees_interleaved_ojactx_2ctx",
-        "trees_blocked_ojactx_2ctx",
+        "interleaved_vanilla_1ctx",
+        "blocked_vanilla_1ctx",
+        "interleaved_vanilla_2ctx",
+        "blocked_vanilla_2ctx",
+        "interleaved_ojactx_1ctx",
+        "blocked_ojactx_1ctx",
+        "interleaved_ojactx_2ctx",
+        "blocked_ojactx_2ctx",
     ]
     
     for cfg in configs:
