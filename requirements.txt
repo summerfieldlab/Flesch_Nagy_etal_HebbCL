@@ -28,7 +28,7 @@ colorama==0.4.4
 colorful==0.5.4
 colour==0.1.5
 ConfigSpace==0.5.0
-cryptography==3.3.1
+cryptography==3.3.2
 cycler==0.10.0
 Cython==0.29.30
 debugpy==1.6.0
