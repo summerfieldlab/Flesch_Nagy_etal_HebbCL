@@ -1,4 +1,5 @@
 import argparse
+from multiprocessing.sharedctypes import Value
 from typing import Union
 
 
@@ -112,6 +113,8 @@ def set_hpo_args(
         args.perform_hebb = True
         args.centering = True
         args.gating = "oja_ctx"
+    else:
+        raise ValueError("requested config not available")
     return args
 
 
