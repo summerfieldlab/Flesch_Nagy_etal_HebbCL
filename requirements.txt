@@ -120,7 +120,7 @@ pydotplus==2.0.2
 pyflakes==2.4.0
 pyglet==1.5.0
 Pygments==2.7.3
-PyJWT==1.7.1
+PyJWT==2.4.0
 pyOpenSSL==20.0.1
 pyparsing==2.4.7
 Pyro4==4.82
