@@ -29,5 +29,5 @@ if __name__ == "__main__":
             working_dir="ray_tune/",
         )
 
-        tuner.tune(n_samples=500, resources_per_trial={"cpu": 2, "gpu": 0})
+        tuner.tune(n_samples=600, resources_per_trial={"cpu": 1, "gpu": 0})
         save_tuner_results(tuner.results, args, filename="trees_" + cfg)
