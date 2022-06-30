@@ -69,7 +69,7 @@ if __name__ == "__main__":
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
         args.save_dir = "sluggish_baseline_int_8episodes_sv" + str(ii)
-        Parallel(n_jobs=6, verbose=10)(
+        Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
         args.save_dir = "sluggish_oja_blocked_8episodes_sv" + str(ii)
-        Parallel(n_jobs=6, verbose=10)(
+        Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
 
@@ -119,6 +119,6 @@ if __name__ == "__main__":
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
         args.save_dir = "sluggish_oja_int_8episodes_sv" + str(ii)
-        Parallel(n_jobs=6, verbose=10)(
+        Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )

@@ -48,6 +48,6 @@ def execute_run(i_run):
 
 if __name__ == "__main__":
 
-    Parallel(n_jobs=6, verbose=10)(
+    Parallel(n_jobs=-1, verbose=10)(
         delayed(execute_run)(i_run) for i_run in range(args.n_runs)
     )
