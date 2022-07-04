@@ -50,7 +50,7 @@ def set_hpo_args(
     args.n_episodes = 200
     args.n_layers = 2
     args.n_hidden = 100
-    args.n_features = 1730
+    args.n_features = 974
     args.ctx_avg = False
 
     args.hpo_fixedseed = True

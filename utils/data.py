@@ -10,25 +10,33 @@ from sklearn.utils import shuffle
 from scipy.stats import multivariate_normal
 
 
-def resize_images(
-    filename: str = None, filepath: str = "../datasets/", size: tuple = (24, 24)
+def crop_resize_images(
+    filename: str = None, filepath: str = "../datasets/", size: tuple = (18, 18)
 ):
-    """resizes rgb images in pickle file
+    """crops and resizes rgb images in pickle file
 
     Args:
         filename (str, optional): name of dataset to load. Defaults to None.
         filepath (str, optional): path to dataset. Defaults to "../datasets".
-        size (tuple, optional): new size in pixels. Defaults to (24, 24).
+        size (tuple, optional): new size in pixels. Defaults to (18, 18).
     """
 
     with open(filepath + filename + ".pkl", "rb") as f:
         data = pickle.load(f)
 
+    # old and new width/height to crop out contexts
+    w = 96
+    h = 96
+    nw = 72
+    nh = 72
+
     x_rs = np.array(
         list(
             map(
                 lambda x: np.asarray(
-                    Image.fromarray(x.reshape((96, 96, 3))).resize(size)
+                    Image.fromarray(x.reshape((96, 96, 3)))
+                    .crop(((w - nw) // 2, (h - nh) // 2, (w + nw) // 2, (h + nh) // 2))
+                    .resize(size)
                 ).flatten(),
                 data["images"],
             )
@@ -36,7 +44,7 @@ def resize_images(
     )
     data["images"] = x_rs
 
-    with open(filepath + filename + "_ds24.pkl", "wb") as f:
+    with open(filepath + filename.replace("_withgarden", "") + "_ds18.pkl", "wb") as f:
         pickle.dump(data, f)
 
 
@@ -87,7 +95,7 @@ def make_trees_block(
 
     # load appropriate dataset
     with open(
-        filepath + whichset + "_data_" + context + "_withgarden_ds24.pkl", "rb"
+        filepath + whichset + "_data_" + context + "_ds18.pkl", "rb"
     ) as f:
         data = pickle.load(f)
 
@@ -181,7 +189,7 @@ def make_trees_blocks(
     n_blocks: int = 10,
     c_scaling: int = 1,
     n_max: int = 199,
-    filepath: str = "../datasets/"
+    filepath: str = "../datasets/",
 ) -> Tuple[np.array, np.array, np.array]:
     """todo
 
@@ -213,7 +221,9 @@ def make_trees_blocks(
     return x_a, y_a, f_a
 
 
-def make_trees_dataset(args: argparse.Namespace, filepath: str = "../datasets/") -> dict:
+def make_trees_dataset(
+    args: argparse.Namespace, filepath: str = "../datasets/"
+) -> dict:
     """todo
 
     Args:
