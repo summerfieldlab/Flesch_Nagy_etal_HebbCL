@@ -7,6 +7,7 @@ import numpy as np
 import statsmodels.api as sm
 from scipy.stats import zscore
 from hebbcl.trainer import Optimiser
+from copy import deepcopy
 
 from utils.nnet import from_gpu
 from utils.eval import (
@@ -98,8 +99,8 @@ class MetricLogger1Hidden:
         Args:
             model (torch.nn.Module): feedforward neural network
         """
-        self.results["w_h0"] = from_gpu(model.W_h)
-        self.results["w_y0"] = from_gpu(model.W_o)
+        self.results["w_h0"] = deepcopy(from_gpu(model.W_h))
+        self.results["w_y0"] = deepcopy(from_gpu(model.W_o))
 
     def log_step(
         self,
@@ -307,9 +308,9 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
         Args:
             model (torch.nn.Module): feedforward neural network
         """
-        self.results["w_h0"] = from_gpu(model.W_h1)
-        self.results["w_h0_2"] = from_gpu(model.W_h2)
-        self.results["w_y0"] = from_gpu(model.W_o)
+        self.results["w_h0"] = deepcopy(from_gpu(model.W_h1))
+        self.results["w_h0_2"] = deepcopy(from_gpu(model.W_h2))
+        self.results["w_y0"] = deepcopy(from_gpu(model.W_o))
 
     def log_step(
         self,
