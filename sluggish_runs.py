@@ -5,7 +5,7 @@ import numpy as np
 from utils.data import make_blobs_dataset
 from utils.nnet import get_device
 
-from hebbcl.logger import MetricLogger
+from hebbcl.logger import MetricLogger1Hidden
 from hebbcl.model import Nnet
 from hebbcl.trainer import Optimiser, train_on_blobs
 from hebbcl.parameters import parser
@@ -30,7 +30,7 @@ def execute_run(i_run):
     dataset = make_blobs_dataset(args)
 
     # instantiate logger, model and optimiser
-    logger = MetricLogger(save_dir)
+    logger = MetricLogger1Hidden(save_dir)
     model = Nnet(args)
     optim = Optimiser(args)
 
