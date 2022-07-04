@@ -50,7 +50,6 @@ if __name__ == "__main__":
 
     # BASELINE NETWORK -------------------------------------------------
     args.cuda = False
-    args.n_episodes = 8
     args.ctx_scaling = 5
     args.lrate_sgd = 0.2
     args.lrate_hebb = 0.0093
@@ -64,11 +63,11 @@ if __name__ == "__main__":
     args.ctx_avg_type = "ema"
     args.training_schedule = "interleaved"
     args.n_runs = 50
-
-    sluggish_vals = np.linspace(0.05, 1, 30)
+    
+    sluggish_vals = np.linspace(0.05, 1, 20)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_baseline_int_8episodes_sv" + str(ii)
+        args.save_dir = "sluggish_baseline_int_select_sv" + str(ii)
         Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
