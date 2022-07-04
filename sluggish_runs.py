@@ -57,7 +57,7 @@ if __name__ == "__main__":
     args.save_results = True
     args.gating = "None"
     args.perform_hebb = False
-    args.centering = True
+    args.centering = False
     args.verbose = False
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
