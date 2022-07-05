@@ -243,7 +243,7 @@ class HPOTuner(object):
                 config = {
                     "lrate_sgd": tune.loguniform(1e-5, 1e-1),
                     "lrate_hebb": tune.loguniform(1e-4, 1e-1),
-                    "ctx_scaling": tune.randint(2, 12),
+                    "ctx_scaling": tune.randint(2, 22),
                 }                
             else:
                 raise NotImplementedError(
