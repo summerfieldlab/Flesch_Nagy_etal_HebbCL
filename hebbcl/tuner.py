@@ -225,7 +225,7 @@ class HPOTuner(object):
             elif self.args.gating is None:
                 config = {
                     "lrate_sgd": tune.loguniform(1e-3, 1e-1),
-                    "n_episodes": tune.choice([200, 500, 1000]),
+                    "ctx_scaling": tune.randint(1, 8),
                 }
         elif self.args.n_layers == 2:
             if self.args.gating is None:
