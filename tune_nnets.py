@@ -16,6 +16,8 @@ if __name__ == "__main__":
     # ]
 
     configs = [
+        "interleaved_vanilla_1ctx",
+        "blocked_vanilla_1ctx",
         "interleaved_ojaall_1ctx",
         "blocked_ojaall_1ctx",
     ]
@@ -49,7 +51,7 @@ if __name__ == "__main__":
     for cfg in configs:
         print(f"performing HPO for {cfg}")
         args = parser.parse_args()
-        args.n_episodes = 200
+        args.n_episodes = 100
         args.n_layers = 2
         args.n_hidden = 100
         args.n_features = 974
@@ -60,12 +62,12 @@ if __name__ == "__main__":
         # init tuner
         tuner = HPOTuner(
             args,
-            time_budget=60 * 30,
+            time_budget=60 * 60,
             metric="acc",
             dataset="trees",
             filepath="/datasets/",
             working_dir="ray_tune/",
         )
 
-        tuner.tune(n_samples=600, resources_per_trial={"cpu": 1, "gpu": 0})
+        tuner.tune(n_samples=1200, resources_per_trial={"cpu": 1, "gpu": 0})
         save_tuner_results(tuner.results, args, filename="trees_asha_" + cfg)
