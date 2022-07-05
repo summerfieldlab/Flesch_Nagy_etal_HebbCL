@@ -239,6 +239,12 @@ class HPOTuner(object):
                     "lrate_hebb": tune.loguniform(1e-4, 1e-1),
                     "ctx_scaling": tune.randint(1, 8),
                 }
+            elif self.args.gating == "oja":
+                config = {
+                    "lrate_sgd": tune.loguniform(1e-5, 1e-1),
+                    "lrate_hebb": tune.loguniform(1e-4, 1e-1),
+                    "ctx_scaling": tune.randint(2, 12),
+                }                
             else:
                 raise NotImplementedError(
                     "gating strategy not implemented for two layer net"

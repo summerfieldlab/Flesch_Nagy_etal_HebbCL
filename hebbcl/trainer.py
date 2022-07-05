@@ -24,7 +24,7 @@ class Optimiser:
         self.n_features = args.n_features
         self.n_hidden = args.n_hidden
         self.n_layers = args.n_layers
-        self.ctx_twice = args.ctx_twice  # -> apply ctx twice in 2 hidden net?
+        self.ctx_twice = args.ctx_twice
 
     def step(self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor):
         """a single training step, using procedure specified in args
@@ -36,24 +36,26 @@ class Optimiser:
         """
 
         if self.perform_sgd is True:
-            self.sgd_update(model, x_in, r_target)
+            self._sgd_update(model, x_in, r_target)
         if self.perform_hebb is True:
             if self.n_layers == 1:
                 if self.gating == "SLA":
-                    self.sla_update(model, x_in)
+                    self._sla_update(model, x_in)
                 elif self.gating == "GHA":
-                    self.gha_update(model, x_in)
+                    self._gha_update(model, x_in)
                 elif self.gating == "oja":
-                    self.oja_update(model, x_in)
+                    self._oja_update(model, x_in)
                 elif self.gating == "oja_ctx":
-                    self.oja_ctx_update(model, x_in)
+                    self._oja_ctx_update(model, x_in)
             elif self.n_layers == 2:
                 if self.gating == "oja_ctx":
-                    self.oja_ctx_update_2hidden(model, x_in)
+                    self._oja_ctx_update_2hidden(model, x_in)
+                elif self.gating == "oja":
+                    self._oja_update_2hidden(model, x_in)
                 else:
-                    raise NotImplementedError("Only oja_ctx supported for 2 layer net")
+                    raise NotImplementedError("Only oja_ctx or oja supported for 2 layer net")
 
-    def sgd_update(
+    def _sgd_update(
         self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor
     ):
         """performs stochastic gradient descent
@@ -75,7 +77,7 @@ class Optimiser:
                     theta -= theta.grad * self.lrate_sgd
             model.zero_grad()
 
-    def oja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+    def _oja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
         """applies Oja's rule to weights from context units to hidden units
         a vectorised implementation of slowoja_update
 
@@ -92,23 +94,7 @@ class Optimiser:
             model.W_h += dW.T
             model.zero_grad()
 
-    def slowoja_update(self, model: torch.nn.Module, x_in: torch.Tensor):
-        """a very slow but more readable implementation of Oja's rule
-
-        Args:
-            model (torch.nn.Module): feed forward neural network
-            x_in (torch.Tensor): training inputs
-        """
-
-        with torch.no_grad():
-            for i in range(model.W_h.shape[1]):
-                y = torch.t(model.W_h[:, i]) @ x_in
-                dw = self.lrate_hebb * y * (x_in - y * model.W_h[:, i])
-
-                model.W_h[:, i] += dw
-                model.zero_grad()
-
-    def oja_ctx_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+    def _oja_ctx_update(self, model: torch.nn.Module, x_in: torch.Tensor):
         """same as oja_update, but applied only to context units
 
         Args:
@@ -125,7 +111,7 @@ class Optimiser:
             model.W_h[-2:, :] += dW.T
             model.zero_grad()
 
-    def oja_ctx_update_2hidden(self, model: torch.nn.Module, x_in: torch.Tensor):
+    def _oja_ctx_update_2hidden(self, model: torch.nn.Module, x_in: torch.Tensor):
         """same as above, but for net with two hidden layers
 
         Args:
@@ -150,23 +136,26 @@ class Optimiser:
                 model.W_h2[-2:, :] += dW.T
                 model.zero_grad()
 
-    def slowoja_ctx_update(self, model: torch.nn.Module, x_in: torch.Tensor):
-        """same as slowja_update, but applied only to context units
+    def _oja_update_2hidden(self, model: torch.nn.Module, x_in: torch.Tensor):
+        """oja update applied to all units of first hidden layer in nnet with two hidden layers
 
         Args:
             model (torch.nn.Module): feed forward neural network
-            x_in (torch.Tensor): training inputs
+            x_in (torch.Tensor): training data
         """
-        x_in = x_in[-2:]
+        x_vec = x_in.repeat(self.n_hidden).reshape(-1, self.n_features)
+
         with torch.no_grad():
-            for i in range(model.W_h.shape[1]):
-                y = torch.t(model.W_h[-2:, i]) @ x_in
-                dw = self.lrate_hebb * y * (x_in - y * model.W_h[-2:, i])
+            y = torch.t(model.W_h1) @ x_in
+            y = y.repeat(self.n_features).reshape(self.n_features, -1).T
+            dW = self.lrate_hebb * y * (x_vec - y * torch.t(model.W_h1))
+            model.W_h1 += dW.T
+            model.zero_grad()
 
-                model.W_h[-2:, i] += dw
-                model.zero_grad()
+        if self.ctx_twice:
+            raise NotImplementedError("oja on all units only supported for first hidden layer")
 
-    def sla_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+    def _sla_update(self, model: torch.nn.Module, x_in: torch.Tensor):
         """applies subspace learning algorithm to input-to-hidden weights
 
         Args:
@@ -188,14 +177,14 @@ class Optimiser:
             )
             model.zero_grad()
 
-    def gha_update(self, model: torch.nn.Module, x_in: torch.Tensor):
+    def _gha_update(self, model: torch.nn.Module, x_in: torch.Tensor):
         """applies generalised hebbian algorithm update to input-to-hidden weights
 
         Args:
             model (torch.nn.Module): neural network
             x_in (torch.Tensor): training data
         """
-        x_in = torch.t(x_in)  # self.n_featuresx1
+        x_in = torch.t(x_in)
         with torch.no_grad():
             Y = torch.t(model.W_h) @ x_in
             model.W_h += torch.t(
