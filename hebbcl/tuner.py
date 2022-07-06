@@ -367,7 +367,7 @@ def validate_tuner_results(filename: str, filepath: str = "./results/", datapath
     args = argparse.Namespace(**results["config"])
 
     # extract best config and set args
-    df = results["df"]
+    df = results["df"].sort_values("mean_loss")
     params = ["config.lrate_sgd", "config.lrate_hebb", "config.ctx_scaling"]
     hps = dict(df[[c for c in df.columns if c in params]].iloc[0, :])
     for k, v in hps.items():
