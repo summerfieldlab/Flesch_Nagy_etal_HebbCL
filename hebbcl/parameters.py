@@ -55,28 +55,28 @@ def set_hpo_args(
         args.ctx_twice = False
         args.training_schedule = "interleaved"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "blocked_vanilla_1ctx":
         args.ctx_twice = False
         args.training_schedule = "blocked"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "interleaved_vanilla_2ctx":
         args.ctx_twice = True
         args.training_schedule = "interleaved"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "blocked_vanilla_2ctx":
         args.ctx_twice = True
         args.training_schedule = "blocked"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "interleaved_ojactx_1ctx":

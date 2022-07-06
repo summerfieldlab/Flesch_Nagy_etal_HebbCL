@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import torch
 import numpy as np
 import random
@@ -13,7 +14,8 @@ from ray.tune.suggest.bohb import TuneBOHB
 from ray.tune.suggest import SearchAlgorithm
 from ray.tune.suggest.suggestion import Searcher
 from ray.tune.schedulers import HyperBandForBOHB, ASHAScheduler, TrialScheduler
-from typing import Union, Mapping
+from typing import Dict, Union, Mapping
+from joblib import Parallel, delayed
 
 
 class HPOTuner(object):
@@ -244,7 +246,7 @@ class HPOTuner(object):
                     "lrate_sgd": tune.loguniform(1e-5, 1e-1),
                     "lrate_hebb": tune.loguniform(1e-4, 1e-1),
                     "ctx_scaling": tune.randint(2, 22),
-                }                
+                }
             else:
                 raise NotImplementedError(
                     "gating strategy not implemented for two layer net"
@@ -295,14 +297,18 @@ class HPOTuner(object):
 
 
 def save_tuner_results(
-    df: pd.DataFrame, args: argparse.Namespace, filename: str = "results"
+    df: pd.DataFrame,
+    args: argparse.Namespace,
+    filename: str = "configs",
+    filepath: str = "results/",
 ) -> argparse.Namespace:
     """saves results from HPOTuner call
 
     Args:
         df (pd.DataFrame): table with results for individual trials
         args (argparse.Namespace): various configuration parameters
-        filename (str, optional): name of file on disk. Defaults to "results".
+        filename (str, optional): name of file on disk. Defaults to "configs".
+        filepath (str, optional): path to file on disk. Defaults to "results".
     """
     # preprocessing ....
     # print(df.columns)
@@ -323,5 +329,108 @@ def save_tuner_results(
         "config": args,
     }
     # and store away ....
-    with open("results/raytune_" + filename + ".pkl", "wb") as f:
+    with open(filepath + "raytune_" + filename + ".pkl", "wb") as f:
         pickle.dump(results, f)
+
+
+def load_tuner_results(
+    filename: str, filepath: str = "results/"
+) -> Dict[pd.DataFrame, argparse.Namespace]:
+    """loads results from hpo tuner run
+
+    Args:
+        filename (str): filename of tuner results
+        filepath (str, optional): folder containing tuner results. Defaults to "results/".
+
+    Returns:
+        Dict[pd.DataFrame, argparse.Namespace]: table with results of individual runs as well as config file
+    """
+
+    with open(filepath + "raytune_" + filename + ".pkl", "rb") as f:
+        results = pickle.load(f)
+        return results
+
+
+def validate_tuner_results(filename: str, filepath: str = "./results/", datapath="./datasets/"):
+    """validates results from HPO by running a series of independent training runs
+     with randomly initialised weights.
+    Stores results to disk
+
+    Args:
+        filename (str): name of tuning run
+        filepath (str, optional): path to tuning results. Defaults to "./results/".
+        datapath (str, optional): path to trees datasets. Defaults to "./datasets/".
+    """
+
+    # load tuner results
+    results = load_tuner_results(filename, filepath)
+    args = argparse.Namespace(**results["config"])
+
+    # extract best config and set args
+    df = results["df"]
+    params = ["config.lrate_sgd", "config.lrate_hebb", "config.ctx_scaling"]
+    hps = dict(df[[c for c in df.columns if c in params]].iloc[0, :])
+    for k, v in hps.items():
+        setattr(args, k.split(".")[1], v)
+
+    args.save_dir = filename
+    dataset = "blobs" if "blobs" in filename else "trees"
+
+    # run jobs in parallel
+    seeds = np.random.randint(np.iinfo(np.int32).max, size=args.n_runs)
+    Parallel(n_jobs=-1, verbose=10)(
+        delayed(execute_run)(i_run, seeds[i_run], args, dataset_id=dataset, filepath=datapath)
+        for i_run in range(args.n_runs)
+    )
+
+
+def execute_run(
+    i_run: int, rng: int, args: argparse.Namespace, dataset_id: str = "blobs", filepath="./datasets/"
+):
+    """executes single training run
+
+    Args:
+        i_run (int): run id
+        rng (int): seed for random number generators
+        args (argparse.Namespace): parameters
+        dataset_id (str, optional): which dataset to use (blobs or trees). Defaults to "blobs".
+    """
+    print("run {} / {}".format(str(i_run), str(args.n_runs)))
+
+    # set random seed
+    np.random.seed(rng)
+    random.seed(rng)
+    torch.manual_seed(rng)
+
+    # create checkpoint dir
+    run_name = "run_" + str(i_run)
+    save_dir = Path("checkpoints") / args.save_dir / run_name
+
+    # get (cuda) device
+    args.device, _ = utils.nnet.get_device(args.cuda)
+    args.verbose = False
+
+    # get dataset
+    if dataset_id == "blobs":
+        dataset = utils.data.make_blobs_dataset(args)
+    elif dataset_id == "trees":
+        dataset = utils.data.make_trees_dataset(args, filepath=filepath)
+
+    # instantiate logger, model and optimiser
+    logger = hebbcl.logger.LoggerFactory.create(args, save_dir)
+    model = hebbcl.model.ModelFactory.create(args)
+    optim = hebbcl.trainer.Optimiser(args)
+
+    # send model to GPU
+    model = model.to(args.device)
+
+    # train model
+    if dataset_id == "blobs":
+        hebbcl.trainer.train_on_blobs(args, model, optim, dataset, logger)
+    elif dataset_id == "trees":
+        hebbcl.trainer.train_on_trees(args, model, optim, dataset, logger)
+
+    # save results
+    if args.save_results:
+        save_dir.mkdir(parents=True, exist_ok=True)
+        logger.save(model)
