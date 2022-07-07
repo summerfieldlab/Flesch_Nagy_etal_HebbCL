@@ -53,7 +53,9 @@ class Optimiser:
                 elif self.gating == "oja":
                     self._oja_update_2hidden(model, x_in)
                 else:
-                    raise NotImplementedError("Only oja_ctx or oja supported for 2 layer net")
+                    raise NotImplementedError(
+                        "Only oja_ctx or oja supported for 2 layer net"
+                    )
 
     def _sgd_update(
         self, model: torch.nn.Module, x_in: torch.Tensor, r_target: torch.Tensor
@@ -153,7 +155,9 @@ class Optimiser:
             model.zero_grad()
 
         if self.ctx_twice:
-            raise NotImplementedError("oja on all units only supported for first hidden layer")
+            raise NotImplementedError(
+                "oja on all units only supported for first hidden layer"
+            )
 
     def _sla_update(self, model: torch.nn.Module, x_in: torch.Tensor):
         """applies subspace learning algorithm to input-to-hidden weights
@@ -329,8 +333,18 @@ def train_on_trees(
         .to(args.device)
     )
 
-    f_both = (
-        torch.from_numpy(np.concatenate((data["f_test_a"], data["f_test_b"]), axis=0))
+    x_pattern = (
+        torch.from_numpy(
+            np.concatenate((data["x_test_a"][:25, :], data["x_test_b"][:25, :]), axis=0)
+        )
+        .float()
+        .to(args.device)
+    )
+
+    f_pattern = (
+        torch.from_numpy(
+            np.concatenate((data["f_test_a"][:25, :], data["f_test_b"][:25, :]), axis=0)
+        )
         .float()
         .to(args.device)
     )
@@ -345,7 +359,18 @@ def train_on_trees(
         optim.step(model, x, y)
         if ii % args.log_interval == 0:
 
-            logger.log_step(model, optim, x_a, x_b, x_both, r_a, r_b, r_both, f_both)
+            logger.log_step(
+                model,
+                optim=optim,
+                x_a=x_a,
+                x_b=x_b,
+                x_both=x_both,
+                x_pattern=x_pattern,
+                f_pattern=f_pattern,
+                r_a=r_a,
+                r_b=r_b,
+                r_both=r_both,
+            )
             if args.verbose:
                 print(
                     "step {}, loss: task a {:.4f}, task b {:.4f} | acc: task a {:.4f}, task b {:.4f}".format(
@@ -371,5 +396,5 @@ def train_on_trees(
                         )
                     )
 
-    logger.log_patterns(model, x_both)
+    logger.log_patterns(model, x_pattern)
     print("done")

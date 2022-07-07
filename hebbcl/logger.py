@@ -319,10 +319,11 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
         x_a: torch.Tensor,
         x_b: torch.Tensor,
         x_both: torch.Tensor,
+        x_pattern: torch.Tensor,
+        f_pattern: torch.Tensor,
         r_a: torch.Tensor,
         r_b: torch.Tensor,
-        r_both: torch.Tensor,
-        f_both: torch.Tensor,
+        r_both: torch.Tensor,        
     ):
         """log a single training step
 
@@ -331,11 +332,12 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
             optim (trainer.Optimiser): optimiser to perform SGD/Hebb
             x_a (torch.Tensor): test inputs task A
             x_b (torch.Tensor): test inputs task B
-            x_both (torch.Tensor): test inputs both
+            x_both (torch.Tensor): test inputs both 
+            x_pattern (torch.Tensor) first 25 from task a and 25 from task b
+            f_pattern (torch.Tensor) feature vals for above
             r_a (torch.Tensor): rewards, task A
             r_b (torch.Tensor): rewards task B
-            r_both (torch.Tensor): rewards, both tasks
-            f_both (torch.Tensor): feature values both tasks
+            r_both (torch.Tensor): rewards, both tasks            
         """
         # accuracy/ loss
         self.results["losses_total"].append(
@@ -390,7 +392,7 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
         )
 
         # sparsity
-        model.forward(x_both[:50, :])
+        model.forward(x_pattern)
         n_dead, n_local, n_a, n_b, dotprod = compute_sparsity_stats(
             from_gpu(model.y_h1).T
         )
@@ -410,7 +412,7 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
         self.results["hidden_dotprod2"].append(dotprod)
 
         if not hasattr(self, "dmat"):
-            self.dmat = make_dmat(f_both[:50, :])
+            self.dmat = make_dmat(f_pattern)
 
         yh = from_gpu(model.y_h1)
         # assert yh.shape == (50, 100)
@@ -424,16 +426,16 @@ class MetricLogger2Hidden(MetricLogger1Hidden):
         self.results["n_only_a_regr2"].append(n_ta)
         self.results["n_only_b_regr2"].append(n_tb)
 
-    def log_patterns(self, model: torch.nn.Module, x_both: torch.Tensor):
+    def log_patterns(self, model: torch.nn.Module, x_pattern: torch.Tensor):
         """logs hidden layer activity patterns
 
         Args:
             model (torch.nn.Module): feedfoward neural network
-            x_both (torch.Tensor): test inputs from both tasks
+            x_pattern (torch.Tensor): test inputs from both tasks (50 exemplars)
         """
 
         # (hidden) layer patterns
-        model.forward(x_both[:50, :])
+        model.forward(x_pattern)
         self.results["all_x_hidden"].append(from_gpu(model.x_h1))
         self.results["all_y_hidden"].append(from_gpu(model.y_h1))
         self.results["all_x_hidden2"].append(from_gpu(model.x_h2))
