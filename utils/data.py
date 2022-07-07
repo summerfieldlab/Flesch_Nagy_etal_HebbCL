@@ -10,6 +10,36 @@ from sklearn.utils import shuffle
 from scipy.stats import multivariate_normal
 
 
+def resize_images(
+    filename: str = None, filepath: str = "../datasets/", size: tuple = (24, 24)
+):
+    """crops and resizes rgb images in pickle file
+
+    Args:
+        filename (str, optional): name of dataset to load. Defaults to None.
+        filepath (str, optional): path to dataset. Defaults to "../datasets".
+        size (tuple, optional): new size in pixels. Defaults to (24, 24).
+    """
+
+    with open(filepath + filename + ".pkl", "rb") as f:
+        data = pickle.load(f)
+
+    x_rs = np.array(
+        list(
+            map(
+                lambda x: np.asarray(
+                    Image.fromarray(x.reshape((96, 96, 3))).resize(size)
+                ).flatten(),
+                data["images"],
+            )
+        )
+    )
+    data["images"] = x_rs
+
+    with open(filepath + filename + "_ds" + str(size[0]) + ".pkl", "wb") as f:
+        pickle.dump(data, f)
+
+
 def crop_resize_images(
     filename: str = None, filepath: str = "../datasets/", size: tuple = (18, 18)
 ):
@@ -44,7 +74,10 @@ def crop_resize_images(
     )
     data["images"] = x_rs
 
-    with open(filepath + filename.replace("_withgarden", "") + "_ds18.pkl", "wb") as f:
+    with open(
+        filepath + filename.replace("_withgarden", "") + "_ds" + str(size[0]) + ".pkl",
+        "wb",
+    ) as f:
         pickle.dump(data, f)
 
 
@@ -75,6 +108,7 @@ def make_trees_block(
     filepath: str = "../datasets/",
     whichset: str = "training",
     exemplar: int = 0,
+    filesuffix: str = "_ds18",
 ) -> Tuple[np.array, np.array, np.array]:
     """generates a training block with stimuli from trees dataset
 
@@ -95,7 +129,7 @@ def make_trees_block(
 
     # load appropriate dataset
     with open(
-        filepath + whichset + "_data_" + context + "_ds18.pkl", "rb"
+        filepath + whichset + "_data_" + context + filesuffix + ".pkl", "rb"
     ) as f:
         data = pickle.load(f)
 
@@ -190,6 +224,7 @@ def make_trees_blocks(
     c_scaling: int = 1,
     n_max: int = 199,
     filepath: str = "../datasets/",
+    filesuffix: str = "_ds18",
 ) -> Tuple[np.array, np.array, np.array]:
     """todo
 
@@ -214,6 +249,7 @@ def make_trees_blocks(
             exemplar=e,
             whichset=whichset,
             filepath=filepath,
+            filesuffix=filesuffix,
         )
         x_a = np.vstack((x_a, xe)) if x_a is not None else xe
         y_a = np.vstack((y_a, ye)) if y_a is not None else ye
@@ -222,7 +258,7 @@ def make_trees_blocks(
 
 
 def make_trees_dataset(
-    args: argparse.Namespace, filepath: str = "../datasets/"
+    args: argparse.Namespace, filepath: str = "../datasets/", filesuffix="_ds18"
 ) -> dict:
     """todo
 
@@ -243,6 +279,7 @@ def make_trees_dataset(
         n_blocks=args.n_episodes // 2,
         n_max=399,
         filepath=filepath,
+        filesuffix=filesuffix,
     )
     x_b, y_b, f_b = make_trees_blocks(
         whichtask="task_b",
@@ -252,6 +289,7 @@ def make_trees_dataset(
         n_blocks=args.n_episodes // 2,
         n_max=399,
         filepath=filepath,
+        filesuffix=filesuffix,
     )
 
     data = {}
@@ -309,6 +347,7 @@ def make_trees_dataset(
         n_blocks=10,
         n_max=199,
         filepath=filepath,
+        filesuffix=filesuffix,
     )
     data["x_test_b"], data["y_test_b"], data["f_test_b"] = make_trees_blocks(
         whichtask="task_b",
@@ -318,6 +357,7 @@ def make_trees_dataset(
         n_blocks=10,
         n_max=199,
         filepath=filepath,
+        filesuffix=filesuffix,
     )
 
     if args.centering is True:

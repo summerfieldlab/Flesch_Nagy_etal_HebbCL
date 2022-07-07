@@ -26,6 +26,7 @@ class HPOTuner(object):
         metric: str = "loss",
         dataset: str = "blobs",
         filepath: str = "/../datasets/",
+        filesuffix: str = "_ds18",
         working_dir: str = "../ray_tune/",
     ):
         """hyperparameter optimisation for nnets
@@ -50,6 +51,7 @@ class HPOTuner(object):
 
         self.dataset = dataset
         self.filepath = filepath
+        self.filesuffix = filesuffix
 
         if self.args.hpo_fixedseed:
             np.random.seed(self.args.seed)
@@ -123,8 +125,7 @@ class HPOTuner(object):
             datapath = os.environ.get("TUNE_ORIG_WORKING_DIR") + self.filepath
 
             data = utils.data.make_trees_dataset(
-                self.args,
-                filepath=datapath,
+                self.args, filepath=datapath, filesuffix=self.filesuffix
             )
 
         # instantiate model and hebbcl.trainer.Optimiser
@@ -355,7 +356,9 @@ def validate_tuner_results(
     filename: str,
     filepath: str = "./results/",
     datapath: str = "./datasets/",
+    datasuffix: str = "_ds18",
     whichtrial: int = 0,
+    njobs: int = -1,
 ):
     """validates results from HPO by running a series of independent training runs
      with randomly initialised weights.
@@ -385,9 +388,14 @@ def validate_tuner_results(
 
     # run jobs in parallel
     seeds = np.random.randint(np.iinfo(np.int32).max, size=args.n_runs)
-    Parallel(n_jobs=-1, verbose=10)(
+    Parallel(n_jobs=njobs, verbose=10)(
         delayed(execute_run)(
-            i_run, seeds[i_run], args, dataset_id=dataset, filepath=datapath
+            i_run,
+            seeds[i_run],
+            args,
+            dataset_id=dataset,
+            filepath=datapath,
+            filesuffix=datasuffix,
         )
         for i_run in range(args.n_runs)
     )
@@ -399,6 +407,7 @@ def execute_run(
     args: argparse.Namespace,
     dataset_id: str = "blobs",
     filepath="./datasets/",
+    filesuffix="_ds18",
 ):
     """executes single training run
 
@@ -427,7 +436,9 @@ def execute_run(
     if dataset_id == "blobs":
         dataset = utils.data.make_blobs_dataset(args)
     elif dataset_id == "trees":
-        dataset = utils.data.make_trees_dataset(args, filepath=filepath)
+        dataset = utils.data.make_trees_dataset(
+            args, filepath=filepath, filesuffix=filesuffix
+        )
 
     # instantiate logger, model and optimiser
     logger = hebbcl.logger.LoggerFactory.create(args, save_dir)
