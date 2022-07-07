@@ -351,7 +351,7 @@ def load_tuner_results(
         return results
 
 
-def validate_tuner_results(filename: str, filepath: str = "./results/", datapath="./datasets/"):
+def validate_tuner_results(filename: str, filepath: str = "./results/", datapath="./datasets/", whichtrial=0):
     """validates results from HPO by running a series of independent training runs
      with randomly initialised weights.
     Stores results to disk
@@ -369,7 +369,7 @@ def validate_tuner_results(filename: str, filepath: str = "./results/", datapath
     # extract best config and set args
     df = results["df"].sort_values("mean_loss")
     params = ["config.lrate_sgd", "config.lrate_hebb", "config.ctx_scaling"]
-    hps = dict(df[[c for c in df.columns if c in params]].iloc[0, :])
+    hps = dict(df[[c for c in df.columns if c in params]].iloc[whichtrial, :])
     for k, v in hps.items():
         setattr(args, k.split(".")[1], v)
 
