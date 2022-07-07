@@ -1,10 +1,16 @@
 import pickle
 from typing import Tuple, Union
 import numpy as np
+import matplotlib
+from matplotlib import cm, colors
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import seaborn as sns
 from scipy.stats import ttest_ind
+from utils import choicemodel
+from scipy.spatial.distance import pdist, squareform
+from scipy.stats import zscore
+from sklearn.linear_model import LinearRegression
 
 
 def sem(x: np.array, ax: int) -> Union[float, np.array]:
@@ -717,7 +723,7 @@ def plot_basicstats(
         axs1[i].set(xlabel="trial", ylabel="accuracy")
         axs1[i].legend(["1st task", "2nd task"], frameon=False)
         if "interleaved" not in m:
-            axs1[i].plot([100, 100], [0, 1], "k--", alpha=0.5)
+            axs1[i].plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
         axs1[i].set_title(m.split("_")[1])
         plt.gcf()
         sns.despine(f1)
@@ -748,7 +754,7 @@ def plot_basicstats(
         axs2[i].set(xlabel="trial", ylabel="task-sel (%)")
         axs2[i].legend(["1st task", "2nd task"], frameon=False)
         if "interleaved" not in m:
-            axs2[i].plot([100, 100], [0, 1], "k--", alpha=0.5)
+            axs2[i].plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
         axs2[i].set_title(m.split("_")[1])
         plt.gcf()
         sns.despine(f2)
@@ -769,7 +775,7 @@ def plot_basicstats(
         axs3[i].set_ylim([-1.1, 1.05])
         axs3[i].set(xlabel="trial", ylabel=r"$w_{context}$ corr ")
         if "interleaved" not in m:
-            axs3[i].plot([100, 100], [-1, 1], "k--", alpha=0.5)
+            axs3[i].plot([n_epochs / 2, n_epochs / 2], [-1, 1], "k--", alpha=0.5)
         axs3[i].set_title(m.split("_")[1])
         sns.despine(f3)
         f3.tight_layout()
@@ -781,15 +787,471 @@ def plot_basicstats(
         axs4[i, 1].imshow(cmats_b.mean(0))
         axs4[i, 1].set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="rel", ylabel="irrel")
         axs4[i, 1].set_title("2nd task")
-        PCM = axs4[i, 1].get_children()[
-            -2
-        ]  # get the mappable, the 1st and the 2nd are the x and y axes
+        # PCM = axs4[i, 1].get_children()[
+        #     -2
+        # ]  # get the mappable, the 1st and the 2nd are the x and y axes
 
-        plt.subplots_adjust(bottom=0.1, right=0.8, top=0.9)
-        cax = plt.axes([0.85, 0.1, 0.075, 0.8])
-        plt.colorbar(PCM, cax=cax)
+        # plt.subplots_adjust(bottom=0.1, right=0.8, top=0.9)
+        # cax = plt.axes([0.85, 0.1, 0.075, 0.8])
+        # plt.colorbar(PCM, cax=cax)
 
     f1.tight_layout()
     f2.tight_layout()
     f3.tight_layout()
     f4.tight_layout()
+
+
+def plot_sluggish_results(
+    alphas_to_plot: list = [0.05, 0.1, 0.2, 0.3, 0.4, 0.7, 1],
+    sluggish_vals: list = np.round(np.linspace(0.05, 1, 20), 2),
+    cols: matplotlib.cm = cm.plasma([0.05, 0.1, 0.2, 0.3, 0.4, 0.7, 0.9]),
+    n_runs: int = 50,
+    filename: str = "sluggish_baseline_int_select_sv",
+):
+
+    idces = [np.where(alp == sluggish_vals)[0][0] for alp in alphas_to_plot]
+
+    # Accuracy
+    f, axs = plt.subplots(1, 1, figsize=(3, 2.56), dpi=300)
+
+    accs = []
+    for pli, ii, sv, col in zip(np.arange(len(idces)), idces, alphas_to_plot, cols):
+        acc_a = []
+        acc_b = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                acc_a.append(results["acc_1st"][-1])
+                acc_b.append(results["acc_2nd"][-1])
+        accs.append((np.array(acc_a) + np.array(acc_b)) / 2)
+    accs = np.flipud(np.array(accs))
+    for acc, pli, ii, sv, col in zip(
+        accs, np.arange(len(idces)), idces, alphas_to_plot, cols
+    ):
+        plt.bar(pli, acc.mean(), yerr=np.std(acc) / np.sqrt(n_runs), color=col)
+        sns.despine()
+
+    plt.xlabel(r"sluggishness ($1-\alpha$)")
+    plt.title("Accuracy")
+    plt.xticks(
+        ticks=np.arange(7),
+        labels=np.array(1 - np.fliplr(np.asarray([alphas_to_plot]))[0]).round(2),
+    )
+    plt.yticks(
+        np.arange(0.4, 1.1, 0.2),
+        labels=[int(x) for x in (np.arange(0.4, 1.1, 0.2) * 100)],
+    )
+    plt.ylabel("accuracy (%)")
+    plt.ylim(0.4, 1)
+    plt.tight_layout()
+
+    # Choices
+    f, axs = plt.subplots(1, 1, figsize=(3.81, 2.91), dpi=300)
+    all_choices_rel = []
+    all_choices_irrel = []
+    for ii, sv, col in zip(idces, alphas_to_plot, cols):
+        cmats_a = []
+        cmats_b = []
+        # corrs_run_b = []
+        # corrs_run_i = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        cmats_a = np.array(cmats_a)
+        cmats_b = np.array(cmats_b)
+        choices_rel = (cmats_a.mean(2) + cmats_b.mean(1)) / 2
+        choices_irrel = (cmats_a.mean(1) + cmats_b.mean(2)) / 2
+        all_choices_rel.append(choices_rel)
+        all_choices_irrel.append(choices_irrel)
+    all_choices_rel.reverse()
+    all_choices_irrel.reverse()
+    for choices_rel, choices_irrel, ii, sv, col in zip(
+        all_choices_rel, all_choices_irrel, idces, alphas_to_plot, cols
+    ):
+        plt.errorbar(
+            np.arange(5),
+            choices_rel.mean(0),
+            yerr=np.std(choices_rel.mean(0)) / np.sqrt(n_runs),
+            marker="o",
+            color=col,
+            linestyle="",
+            markersize=4,
+        )
+        plt.errorbar(
+            np.arange(5),
+            choices_irrel.mean(0),
+            yerr=np.std(choices_irrel.mean(0)) / np.sqrt(n_runs),
+            marker="o",
+            color=col,
+            linestyle="",
+            markersize=4,
+        )
+
+        plt.plot(
+            np.linspace(0, 4, 100),
+            eval.sigmoid(
+                np.linspace(-2, 2, 100),
+                *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
+            ),
+            color=col,
+            linestyle="-",
+        )
+        plt.plot(
+            np.linspace(0, 4, 100),
+            eval.sigmoid(
+                np.linspace(-2, 2, 100),
+                *choicemodel.fit_sigmoid(
+                    zscore(np.arange(-2, 3)), choices_irrel.mean(0)
+                ),
+            ),
+            color=col,
+            linestyle="--",
+        )
+
+        sns.despine()
+    cmap = cm.plasma
+    norm = colors.Normalize(vmin=0.1, vmax=1)
+
+    plt.colorbar(
+        cm.ScalarMappable(norm=norm, cmap=cmap), label=r"sluggishness ($1-\alpha$)"
+    )
+    plt.title("psychometrics")
+    plt.xlabel("feature value")
+    plt.yticks(ticks=[0, 0.5, 1])
+    plt.xticks(ticks=np.arange(5), labels=[1, 2, 3, 4, 5])
+    plt.ylabel("p(accept)")
+    plt.tight_layout()
+
+    # Sigmoids
+    f, axs = plt.subplots(1, 1, figsize=(3.81, 2.91), dpi=300)
+
+    all_choices_rel = []
+    all_choices_irrel = []
+    for ii, sv, col in zip(idces, alphas_to_plot, cols):
+        cmats_a = []
+        cmats_b = []
+        # corrs_run_b = []
+        # corrs_run_i = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        cmats_a = np.array(cmats_a)
+        cmats_b = np.array(cmats_b)
+        choices_rel = (cmats_a.mean(2) + cmats_b.mean(1)) / 2
+        choices_irrel = (cmats_a.mean(1) + cmats_b.mean(2)) / 2
+        all_choices_rel.append(choices_rel)
+        all_choices_irrel.append(choices_irrel)
+    all_choices_rel.reverse()
+    all_choices_irrel.reverse()
+    for choices_rel, choices_irrel, ii, sv, col in zip(
+        all_choices_rel, all_choices_irrel, idces, alphas_to_plot, cols
+    ):
+        plt.errorbar(
+            np.arange(5),
+            choices_rel.mean(0),
+            yerr=np.std(choices_rel.mean(0)) / np.sqrt(n_runs),
+            marker="o",
+            color=col,
+            linestyle="",
+            markersize=4,
+        )
+        plt.errorbar(
+            np.arange(5),
+            choices_irrel.mean(0),
+            yerr=np.std(choices_irrel.mean(0)) / np.sqrt(n_runs),
+            marker="o",
+            color=col,
+            linestyle="",
+            markersize=4,
+        )
+
+        plt.plot(
+            np.linspace(0, 4, 100),
+            eval.sigmoid(
+                np.linspace(-2, 2, 100),
+                *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
+            ),
+            color=col,
+            linestyle="-",
+        )
+        plt.plot(
+            np.linspace(0, 4, 100),
+            eval.sigmoid(
+                np.linspace(-2, 2, 100),
+                *choicemodel.fit_sigmoid(
+                    zscore(np.arange(-2, 3)), choices_irrel.mean(0)
+                ),
+            ),
+            color=col,
+            linestyle="--",
+        )
+
+        sns.despine()
+    cmap = cm.plasma
+    norm = colors.Normalize(vmin=0.1, vmax=1)
+
+    plt.colorbar(
+        cm.ScalarMappable(norm=norm, cmap=cmap), label=r"sluggishness ($1-\alpha$)"
+    )
+    plt.title("psychometrics")
+    plt.xlabel("feature value")
+    plt.yticks(ticks=[0, 0.5, 1])
+    plt.xticks(ticks=np.arange(5), labels=[1, 2, 3, 4, 5])
+    plt.ylabel("p(accept)")
+    plt.tight_layout()
+
+    # choice matrices
+    alphas_to_plot = [0.05, 0.1, 0.2, 0.3, 0.4, 0.7, 1]
+    idces = [np.where(alp == sluggish_vals)[0][0] for alp in alphas_to_plot]
+
+    unit_cols = [
+        [250 / 255, 147 / 255, 30 / 255],
+        [0 / 255, 6 / 255, 189 / 255],
+        [4 / 255, 162 / 255, 201 / 255],
+    ]
+
+    n_runs = 50
+    f, axs = plt.subplots(2, 7, figsize=(10, 4))
+    all_cmats_a = []
+    all_cmats_b = []
+
+    for ax1, ax2, ii, sv in zip(axs[0, :], axs[1, :], idces, alphas_to_plot):
+        cmats_a = []
+        cmats_b = []
+        # corrs_run_b = []
+        # corrs_run_i = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        cmats_a = np.array(cmats_a)
+        cmats_b = np.array(cmats_b)
+        all_cmats_a.append(cmats_a)
+        all_cmats_b.append(cmats_b)
+    all_cmats_a.reverse()
+    all_cmats_b.reverse()
+    alphas_to_plot.reverse()
+    for cmats_a, cmats_b, ax1, ax2, ii, sv in zip(
+        all_cmats_a, all_cmats_b, axs[0, :], axs[1, :], idces, alphas_to_plot
+    ):
+        ax1.imshow(np.flipud(cmats_a.mean(0)))
+        ax1.set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="irrel", ylabel="rel")
+        [i.set_linewidth(3) for i in ax1.spines.values()]
+        [i.set_color(unit_cols[0]) for i in ax1.spines.values()]
+        ax2.imshow(np.flipud(cmats_b.mean(0)))
+        ax2.set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="rel", ylabel="irrel")
+        [i.set_linewidth(3) for i in ax2.spines.values()]
+        [i.set_color(unit_cols[1]) for i in ax2.spines.values()]
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+    plt.tight_layout()
+
+    # task factorisation
+
+    rdms, dmat, _ = eval.gen_behav_models()
+
+    all_betas = []
+    for ii, sv in zip(idces, alphas_to_plot):
+        betas = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+            choices = 1 / (1 + np.exp(-cc))
+            yrdm = squareform(pdist(choices))
+
+            y = zscore(yrdm[np.tril_indices(50, k=-1)]).flatten()
+            assert len(y) == 1225
+            lr = LinearRegression()
+            lr.fit(dmat, y)
+            betas.append(lr.coef_)
+        all_betas.append(betas)
+    all_betas.reverse()
+    all_betas = np.array(all_betas)
+    all_betas.shape
+
+    plt.figure(figsize=(3.8, 2.9), dpi=300)
+    for i in range(len(all_betas)):
+        ha = plt.bar(
+            i - 0.2,
+            np.mean(all_betas[i, :, 0], 0),
+            yerr=np.std(all_betas[i, :, 0], 0) / np.sqrt(all_betas.shape[1]),
+            width=0.4,
+            color="darkblue",
+        )
+        hb = plt.bar(
+            i + 0.2,
+            np.mean(all_betas[i, :, 1], 0),
+            yerr=np.std(all_betas[i, :, 1], 0) / np.sqrt(all_betas.shape[1]),
+            width=0.4,
+            color="darkgreen",
+        )
+        sns.despine()
+    plt.legend([ha, hb], ("factorised model", "linear model"), frameon=False)
+    plt.ylabel(r"$\beta$ coefficient (a.u.)")
+    plt.xlabel(r"sluggishness ($1-\alpha$)")
+    plt.title("Choice Factorisation")
+    plt.xticks(
+        ticks=np.arange(7),
+        labels=np.array(1 - np.fliplr(np.asarray([alphas_to_plot]))[0]).round(2),
+    )
+
+    # congruency effect
+
+    all_accs = []
+    _, _, cmats = eval.gen_behav_models()
+    cmat_a = cmats[0, 0, :, :]
+    cmat_b = cmats[0, 1, :, :]
+
+    for ii, sv in zip(idces, alphas_to_plot):
+        accs = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choices.reshape((2, 5, 5))
+            choices_a = choices[0, :, :]
+            choices_b = choices[1, :, :]
+            acc, aci = eval.compute_congruency_acc(choices_a, cmat_a)
+            acc_a = acc - aci
+            acc, aci = eval.compute_congruency_acc(choices_b, cmat_b)
+            acc_b = acc - aci
+            accs.append((acc_a + acc_b) / 2)
+
+        all_accs.append(accs)
+    all_accs.reverse()
+    all_accs = np.array(all_accs)
+
+    plt.figure(figsize=(3, 2.56), dpi=300)
+    for acc, pli, ii, sv, col in zip(
+        all_accs, np.arange(len(idces)), idces, alphas_to_plot, cols
+    ):
+        plt.bar(pli, acc.mean(), yerr=np.std(acc) / np.sqrt(n_runs), color=col)
+        sns.despine()
+
+    plt.xlabel(r"sluggishness ($1-\alpha$)")
+    plt.title("Congruency Effect")
+    plt.xticks(
+        ticks=np.arange(7),
+        labels=np.array(1 - np.fliplr(np.asarray([alphas_to_plot]))[0]).round(2),
+    )
+    plt.yticks(
+        np.arange(0, 0.55, 0.1),
+        labels=[int(x) for x in (np.arange(0, 0.55, 0.1) * 100)],
+    )
+    plt.ylabel("acc congr.-incongr. (%)")
+    # plt.ylim(0.4,1)
+    plt.tight_layout()
+
+    # unit selectivity
+
+    all_n_local = []
+    for ii, sv in zip(idces, alphas_to_plot):
+        n_local = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/"
+                + filename
+                + str(ii)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+            n_local.append(results["n_only_a_regr"][-1] + results["n_only_b_regr"][-1])
+
+        all_n_local.append(n_local)
+    all_n_local.reverse()
+    all_n_local = np.array(all_n_local)
+
+    plt.figure(figsize=(3, 2.56), dpi=300)
+    for n_loc, pli, ii, sv, col in zip(
+        all_n_local, np.arange(len(idces)), idces, alphas_to_plot, cols
+    ):
+        plt.bar(pli, n_loc.mean(), yerr=np.std(n_loc) / np.sqrt(n_runs), color=col)
+        sns.despine()
+
+    plt.xlabel(r"sluggishness ($1-\alpha$)")
+    plt.title("Task Selectivity")
+    plt.xticks(
+        ticks=np.arange(7),
+        labels=np.array(1 - np.fliplr(np.asarray([alphas_to_plot]))[0]).round(2),
+    )
+    plt.ylabel("task-sel. units (%)")
+    plt.tight_layout()
