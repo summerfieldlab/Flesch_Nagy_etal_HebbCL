@@ -351,7 +351,12 @@ def load_tuner_results(
         return results
 
 
-def validate_tuner_results(filename: str, filepath: str = "./results/", datapath="./datasets/", whichtrial=0):
+def validate_tuner_results(
+    filename: str,
+    filepath: str = "./results/",
+    datapath: str = "./datasets/",
+    whichtrial: int = 0,
+):
     """validates results from HPO by running a series of independent training runs
      with randomly initialised weights.
     Stores results to disk
@@ -360,6 +365,8 @@ def validate_tuner_results(filename: str, filepath: str = "./results/", datapath
         filename (str): name of tuning run
         filepath (str, optional): path to tuning results. Defaults to "./results/".
         datapath (str, optional): path to trees datasets. Defaults to "./datasets/".
+        whichtrial (int, optional): trial from HPO df to use. Defaults to 0 (first).
+
     """
 
     # load tuner results
@@ -379,13 +386,19 @@ def validate_tuner_results(filename: str, filepath: str = "./results/", datapath
     # run jobs in parallel
     seeds = np.random.randint(np.iinfo(np.int32).max, size=args.n_runs)
     Parallel(n_jobs=-1, verbose=10)(
-        delayed(execute_run)(i_run, seeds[i_run], args, dataset_id=dataset, filepath=datapath)
+        delayed(execute_run)(
+            i_run, seeds[i_run], args, dataset_id=dataset, filepath=datapath
+        )
         for i_run in range(args.n_runs)
     )
 
 
 def execute_run(
-    i_run: int, rng: int, args: argparse.Namespace, dataset_id: str = "blobs", filepath="./datasets/"
+    i_run: int,
+    rng: int,
+    args: argparse.Namespace,
+    dataset_id: str = "blobs",
+    filepath="./datasets/",
 ):
     """executes single training run
 
