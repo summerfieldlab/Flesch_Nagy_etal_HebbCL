@@ -128,16 +128,17 @@ def helper_make_colormap(
     n_items: int = 5,
     monitor: bool = False,
 ) -> Tuple[LinearSegmentedColormap, np.array]:
+    """creates a colormap with custom values and spacing
+
+    Args:
+        basecols (np.array, optional): colours used for interpolation. Defaults to np.array([[63, 39, 24], [64, 82, 21], [65, 125, 18], [66, 168, 15], [68, 255, 10]])/255.
+        n_items (int, optional): number of samples from cmap (i.e. resolution). Defaults to 5.
+        monitor (bool, optional): plot results y/n. Defaults to False.
+
+    Returns:
+        Tuple[LinearSegmentedColormap, np.array]: segmented cmap (from matplotlib.colors), as well as array with rgb vals
     """
-    creates a colormap and returns both the cmap object
-    and a list of rgb tuples
-    inputs:
-    -basecols: nump array with rgb colors spanning the cmap
-    -n_items: sampling resolution of cmap
-    outputs:
-    -cmap: the cmap object
-    -cols: np array of colors spanning cmap
-    """
+
     # turn basecols into list of tuples
     basecols = list(map(lambda x: tuple(x), basecols))
     # turn basecols into colour map
@@ -159,9 +160,7 @@ def plot_grid2(
     fig_id: int = 1,
     n_items: int = 5,
 ):
-    """
-    n_items: number of items along one dimension covered by grid
-    """
+
     # %matplotlib qt
     x, y = np.meshgrid(np.arange(0, n_items), np.arange(0, n_items))
     x = x.flatten()
