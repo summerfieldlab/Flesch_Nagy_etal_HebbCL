@@ -11,6 +11,8 @@ from utils import choicemodel
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import zscore
 from sklearn.linear_model import LinearRegression
+from sklearn.manifold import MDS
+from utils import eval
 
 
 def sem(x: np.array, ax: int) -> Union[float, np.array]:
@@ -1255,3 +1257,63 @@ def plot_sluggish_results(
     )
     plt.ylabel("task-sel. units (%)")
     plt.tight_layout()
+
+
+def plot_mds(
+    filename_embedding: str = "mds_embedding_baseline_int_new",
+    filename_runs: str = "baseline_interleaved_new",
+    thetas: tuple = (40, 0, 10),
+    layer: str = "all_y_hidden",
+    n_runs: int = 50,
+    resultsdir: str = "../results/",
+):
+    """visualises hidden layer activity with MDS projection into 3 dim
+
+    Args:
+        filename_embedding (str, optional): name of mds file. Defaults to "mds_embedding_baseline_int_new".
+        filename_runs (str, optional): name of results file. Defaults tp "baseline_interleaved_new".
+        thetas (tuple, optional): rotation of mds projection. Defaults to (40,0,10).
+        layer (str, optional). which layer to plot. Defaults to all_y_hidden.
+        n_runs (int, optional): number of training runs. Defaults to 50.
+        resultsdir (str, optional): location of training runs. Defaults to "../results/".
+    """
+
+    # check whether mds results already exist:
+    try:
+        with open(resultsdir + filename_embedding + ".pkl", "rb") as f:
+            xyz = pickle.load(f)
+    except FileNotFoundError:
+        rdms = np.empty((n_runs, 50, 50))
+        for r in range(n_runs):
+            with open(
+                "checkpoints/" + filename_runs + "/run_" + str(r) + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+            rdms[r, :, :] = squareform(
+                pdist(results[layer][-1, :, :], metric="euclidean")
+            )
+
+        embedding = MDS(
+            n_components=3,
+            n_init=10,
+            max_iter=10000,
+            metric=True,
+            dissimilarity="precomputed",
+        )
+        xyz = embedding.fit_transform(np.mean(rdms, 0))
+
+        with open(resultsdir + filename_embedding + ".pkl", "wb") as f:
+            pickle.dump(xyz, f)
+
+    xyz_rot = eval.rotate(xyz, thetas[0], axis="x")
+    xyz_rot = eval.rotate(xyz_rot, thetas[1], axis="y")
+    xyz_rot = eval.rotate(xyz_rot, thetas[2], axis="z")
+
+    plt.close()
+    mm = 1 / 25.4
+    fig = plt.figure(
+        2, figsize=(69 * mm, 33 * mm), dpi=300, facecolor="w", edgecolor="k"
+    )
+
+    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=5)
