@@ -383,7 +383,7 @@ def validate_tuner_results(
     for k, v in hps.items():
         setattr(args, k.split(".")[1], v)
 
-    args.save_dir = filename
+    args.save_dir = filename if whichtrial == 0 else filename + "_" + str(whichtrial)
     dataset = "blobs" if "blobs" in filename else "trees"
 
     # run jobs in parallel
