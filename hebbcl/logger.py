@@ -270,10 +270,11 @@ class MetricLogger1Hidden:
         """
 
         for k, v in self.results.items():
-            self.results[k] = np.asarray(v)
+            self.results[k] = np.asarray(v, dtype=object)
         # save results and model
         with open(self.save_log / fname_results, "wb") as f:
             pickle.dump(self.results, f)
+            print(f"saved results to {self.save_log}")
 
         with open(self.save_log / fname_model, "wb") as f:
             pickle.dump(model, f)

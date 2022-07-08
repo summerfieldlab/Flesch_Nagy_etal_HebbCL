@@ -98,18 +98,18 @@ if __name__ == "__main__":
         args.hpo_scheduler = "asha"
         args.hpo_searcher = None
         # init tuner
-        tuner = HPOTuner(
-            args,
-            time_budget=60 * 120,
-            metric="acc",
-            dataset="trees",
-            filepath="/datasets/",
-            working_dir="ray_tune/",
-            filesuffix="_ds18",
-        )
+    #    tuner = HPOTuner(
+    #        args,
+    #        time_budget=60 * 120,
+    #        metric="acc",
+    #        dataset="trees",
+    #        filepath="/datasets/",
+    #        working_dir="ray_tune/",
+    #        filesuffix="_ds18",
+    #    )
 
-        tuner.tune(n_samples=2000, resources_per_trial={"cpu": 4, "gpu": 0})
-        save_tuner_results(tuner.results, args, filename="trees_asha_" + cfg)
+    #    tuner.tune(n_samples=2000, resources_per_trial={"cpu": 2, "gpu": 0})
+    #    save_tuner_results(tuner.results, args, filename="trees_asha_" + cfg)
 
         # validate best results
         validate_tuner_results(filename="trees_asha_" + cfg, njobs=20)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         args.n_episodes = 100
         args.n_layers = 2
         args.n_hidden = 100
-        args.n_features = 24 * 24 * 3
+        args.n_features = 24 * 24 * 3 + 2
         args.ctx_avg = False
         args = set_hpo_args(args, whichmodel=cfg)
         args.hpo_scheduler = "asha"
@@ -138,8 +138,8 @@ if __name__ == "__main__":
             filesuffix="_withgarden_ds24",
         )
 
-        tuner.tune(n_samples=2000, resources_per_trial={"cpu": 4, "gpu": 0})
-        save_tuner_results(tuner.results, args, filename="trees_asha_" + cfg)
+        tuner.tune(n_samples=2000, resources_per_trial={"cpu": 2, "gpu": 0})
+        save_tuner_results(tuner.results, args, filename="trees_wgarden24_asha_" + cfg)
 
         # validate best results
-        validate_tuner_results(filename="trees_wgarden24_asha_" + cfg, njobs=20)
+        validate_tuner_results(filename="trees_wgarden24_asha_" + cfg, datasuffix="_withgarden_ds24", njobs=20)

@@ -427,7 +427,6 @@ def execute_run(
     # create checkpoint dir
     run_name = "run_" + str(i_run)
     save_dir = Path("checkpoints") / args.save_dir / run_name
-
     # get (cuda) device
     args.device, _ = utils.nnet.get_device(args.cuda)
     args.verbose = False

@@ -327,7 +327,6 @@ def make_trees_dataset(
         )
     elif args.training_schedule == "interleaved":
         shuff_idces = np.random.permutation(len(x_a) * 2)
-        print(len(shuff_idces))
         data["x_train"] = np.vstack((x_a, x_b))[
             shuff_idces,
         ]
