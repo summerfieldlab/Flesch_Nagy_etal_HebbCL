@@ -1,6 +1,6 @@
 from copy import deepcopy
 import pickle
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 import numpy as np
 import matplotlib
 from matplotlib import cm, colors
@@ -11,6 +11,7 @@ from scipy.stats import ttest_ind
 from utils import choicemodel
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import zscore
+from scipy.io import loadmat
 from sklearn.linear_model import LinearRegression
 from sklearn.manifold import MDS
 from utils import eval
@@ -1627,3 +1628,214 @@ def plot_oja(
     # plt.xlim([0,10])
     plt.ylim(-1, 1)
     plt.yticks(np.arange(-1, 1.1, 1))
+
+
+def plot_modelcomparison_accuracy(
+    baseline_models: List[str] = [
+        "baseline_interleaved_new_select",
+        "baseline_blocked_new_select",
+    ],
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.1,
+    slope_blocked: int = 14,
+    slope_int: int = 14,
+    n_runs: int = 20,
+):
+    pass
+    # load slugglish sla int , collect accuracies
+    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
+    sluggishness = 0.1
+    idx = np.where(sluggish_vals == sluggishness)[0][0]
+    slope_blocked = 14
+    tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
+    slope_int = 14
+    tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
+    n_runs = 20
+
+    acc_int_oja = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
+            acc_int_oja.append(
+                choicemodel.compute_sampled_accuracy(
+                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5)
+                )
+            )
+    acc_int_oja = np.array(acc_int_oja)
+
+    acc_blocked_oja = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
+            acc_blocked_oja.append(
+                choicemodel.compute_sampled_accuracy(
+                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5)
+                )
+            )
+    acc_blocked_oja = np.array(acc_blocked_oja)
+
+    # load baseline models:
+    n_runs = 50
+    acc_a = []
+    acc_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + baseline_models[0] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            # acc_a.append(results['acc_1st_noise'][-1][6])
+            acc_a.append(results["acc_1st"][-1])
+            # acc_b.append(results['acc_2nd_noise'][-1][6])
+            acc_b.append(results["acc_2nd"][-1])
+    acc_int_baseline = (np.array(acc_a) + np.array(acc_b)) / 2
+    n_runs = 50
+    acc_a = []
+    acc_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + baseline_models[1] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            # acc_a.append(results['acc_1st_noise'][-1][6])
+            acc_a.append(results["acc_1st"][-1])
+            # acc_b.append(results['acc_2nd_noise'][-1][6])
+            acc_b.append(results["acc_2nd"][-1])
+    acc_blocked_baseline = (np.array(acc_a) + np.array(acc_b)) / 2
+
+    plt.figure(figsize=(3.2, 2.0), dpi=300)
+    # make figure
+    plt.subplot(1, 3, 1)
+    accs = loadmat("../datasets/accs_exp1a.mat")
+    plt.bar(
+        np.arange(2),
+        [accs["acc_b200"].mean(), accs["acc_int"].mean()],
+        yerr=[
+            np.std(accs["acc_b200"]) / np.sqrt(len(accs["acc_b200"].T)),
+            np.std(accs["acc_int"]) / np.sqrt(len(accs["acc_int"].T)),
+        ],
+        color=[[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylim(0.5, 1.05)
+    plt.yticks(
+        ticks=np.arange(0.4, 1.1, 0.2), labels=np.arange(40, 101, 20), fontsize=6
+    )
+    plt.ylabel("accuracy (%)", fontsize=6)
+
+    sns.despine()
+
+    plt.title("Humans", fontsize=6)
+    # statistical inference:
+    res = ttest_ind(accs["acc_b200"].ravel(), accs["acc_int"].ravel())
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"acc humans blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [1, 1], "k-", linewidth=1)
+    plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 2)
+    plt.bar(
+        np.arange(2),
+        [acc_blocked_baseline.mean(), acc_int_baseline.mean()],
+        yerr=[
+            np.std(acc_blocked_baseline) / np.sqrt(n_runs),
+            np.std(acc_int_baseline) / np.sqrt(n_runs),
+        ],
+        color=["darkred", "red"],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylim(0.5, 1.05)
+    plt.yticks(
+        ticks=np.arange(0.4, 1.1, 0.2), labels=np.arange(40, 101, 20), fontsize=6
+    )
+    plt.ylabel("accuracy (%)", fontsize=6)
+    # plt.xlabel('group',fontsize=6)
+    sns.despine()
+    plt.title("Baseline", fontsize=6)
+    # statistical inference:
+    res = ttest_ind(acc_blocked_baseline, acc_int_baseline)
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"acc baseline blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [1, 1], "k-", linewidth=1)
+    plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 3)
+    plt.bar(
+        np.arange(2),
+        [acc_blocked_oja.mean(), acc_int_oja.mean()],
+        yerr=[
+            np.std(acc_blocked_oja) / np.sqrt(n_runs),
+            np.std(acc_int_oja) / np.sqrt(n_runs),
+        ],
+        color=[[20 / 255, 78 / 255, 102 / 255], [50 / 255, 133 / 255, 168 / 255]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylim(0.5, 1.05)
+    plt.yticks(
+        ticks=np.arange(0.4, 1.1, 0.2), labels=np.arange(40, 101, 20), fontsize=6
+    )
+    plt.ylabel("accuracy (%)", fontsize=6)
+    # plt.xlabel('group',fontsize=6)
+    sns.despine()
+    plt.title("EMA+Hebb", fontsize=6)
+
+    # statistical inference:
+    res = ttest_ind(acc_blocked_oja, acc_int_oja)
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"acc oja blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [1, 1], "k-", linewidth=1)
+    plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
+    plt.suptitle("Accuracy", fontsize=6)
+
+    plt.tight_layout()
