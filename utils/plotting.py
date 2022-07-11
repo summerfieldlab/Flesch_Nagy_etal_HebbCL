@@ -1653,8 +1653,6 @@ def plot_modelcomparison_accuracy(
     tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
     slope_int = 14
     tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
-    n_runs = 20
-
     acc_int_oja = []
     for r in np.arange(0, n_runs):
         with open(
@@ -1838,4 +1836,1388 @@ def plot_modelcomparison_accuracy(
     plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
     plt.suptitle("Accuracy", fontsize=6)
 
+    plt.tight_layout()
+
+
+def plot_modelcomparison_sigmoids(
+    baseline_models: List[str] = [
+        "baseline_interleaved_new_select",
+        "baseline_blocked_new_select",
+    ],
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.1,
+    slope_blocked: int = 14,
+    slope_int: int = 14,
+    n_runs: int = 20,
+) -> dict:
+    # sigmoids
+    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
+
+    sluggishness = 0.1
+    idx = np.where(sluggish_vals == sluggishness)[0][0]
+    slope_blocked = 14
+    tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
+    slope_int = 14
+    tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
+
+    plt.figure(figsize=(4.8, 2.3), dpi=300)
+
+    betas = {
+        "humans": {
+            "blocked": {"rel": [], "irrel": []},
+            "int": {"rel": [], "irrel": []},
+        },
+        "baseline": {
+            "blocked": {"rel": [], "irrel": []},
+            "int": {"rel": [], "irrel": []},
+        },
+        "ema": {"blocked": {"rel": [], "irrel": []}, "int": {"rel": [], "irrel": []}},
+    }
+
+    choices = loadmat("../datasets/choices_exp1a.mat")
+    # fit betas to individual subjects
+    for k, v in choices.items():
+        if "choices" in k:
+            k = k.split("_")
+            bs = []
+            for y in v:
+                bs.append(
+                    choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False)
+                )
+            if k[1] == "b200":
+                betas["humans"]["blocked"][k[-1]] = np.asarray(bs)
+            else:
+                betas["humans"][k[1]][k[-1]] = np.asarray(bs)
+
+    plt.subplot(1, 3, 1)
+    choices = loadmat("../datasets/choices_exp1a.mat")
+    pl_bl_rel = plt.errorbar(
+        np.arange(5),
+        choices["choices_b200_rel"].mean(0),
+        yerr=np.std(choices["choices_b200_rel"].mean(0)) / np.sqrt(n_runs),
+        marker="o",
+        color=(0.2, 0.2, 0.2),
+        markersize=4,
+        linestyle="",
+    )
+    pl_bl_irrel = plt.errorbar(
+        np.arange(5),
+        choices["choices_b200_irrel"].mean(0),
+        yerr=np.std(choices["choices_b200_irrel"].mean(0)) / np.sqrt(n_runs),
+        marker="*",
+        color=(0.2, 0.2, 0.2),
+        linestyle="",
+        markersize=4,
+    )
+    f_bl_rel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(
+                zscore(np.arange(-2, 3)), choices["choices_b200_rel"].mean(0)
+            ),
+        ),
+        color=(0.2, 0.2, 0.2),
+        linestyle="-",
+    )
+    f_bl_irrel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(
+                zscore(np.arange(-2, 3)), choices["choices_b200_irrel"].mean(0)
+            ),
+        ),
+        color=(0.2, 0.2, 0.2),
+        linestyle="--",
+    )
+
+    pl_in_rel = plt.errorbar(
+        np.arange(5),
+        choices["choices_int_rel"].mean(0),
+        yerr=np.std(choices["choices_int_rel"].mean(0)) / np.sqrt(n_runs),
+        marker="o",
+        color=(0.5, 0.5, 0.5),
+        markersize=4,
+        linestyle="",
+    )
+    pl_in_irrel = plt.errorbar(
+        np.arange(5),
+        choices["choices_int_irrel"].mean(0),
+        yerr=np.std(choices["choices_int_irrel"].mean(0)) / np.sqrt(n_runs),
+        marker="*",
+        color=(0.5, 0.5, 0.5),
+        linestyle="",
+        markersize=4,
+    )
+    f_bl_rel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(
+                zscore(np.arange(-2, 3)), choices["choices_int_rel"].mean(0)
+            ),
+        ),
+        color=(0.5, 0.5, 0.5),
+        linestyle="-",
+    )
+    f_bl_irrel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(
+                zscore(np.arange(-2, 3)), choices["choices_int_irrel"].mean(0)
+            ),
+        ),
+        color=(0.5, 0.5, 0.5),
+        linestyle="--",
+    )
+
+    sns.despine()
+    plt.legend(
+        [pl_bl_rel[0], pl_bl_irrel[0], pl_in_rel[0], pl_in_irrel[0]],
+        ["blocked - rel", "blocked - irrel", "int - rel", "int - irrel"],
+        frameon=False,
+        fontsize=6,
+        loc=2,
+    )
+    plt.title("Humans", fontsize=6)
+    plt.xlabel("feature value", fontsize=6)
+    plt.ylabel("p(accept)", fontsize=6)
+    plt.xticks(ticks=[0, 2, 4], labels=[1, 3, 5], fontsize=6)
+    plt.yticks(ticks=(0, 0.5, 1), fontsize=6)
+
+    plt.subplot(1, 3, 2)
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + baseline_models[0] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            # choices = choice_sigmoid(cc,T=tempval)
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_a = np.array(cmats_a)
+    cmats_b = np.array(cmats_b)
+    choices_rel = (cmats_a.mean(2) + cmats_b.mean(1)) / 2
+    choices_irrel = (cmats_a.mean(1) + cmats_b.mean(2)) / 2
+    bs = []
+    for y in choices_rel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["baseline"]["int"]["rel"] = np.asarray(bs)
+    bs = []
+    for y in choices_irrel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["baseline"]["int"]["irrel"] = np.asarray(bs)
+
+    pl_in_rel = plt.errorbar(
+        np.arange(5),
+        choices_rel.mean(0),
+        yerr=np.std(choices_rel.mean(0)) / np.sqrt(n_runs),
+        marker="d",
+        color="red",
+        markersize=4,
+        linestyle="",
+    )
+    pl_in_irrel = plt.errorbar(
+        np.arange(5),
+        choices_irrel.mean(0),
+        yerr=np.std(choices_irrel.mean(0)) / np.sqrt(n_runs),
+        marker="*",
+        color="red",
+        linestyle="",
+        markersize=4,
+    )
+    f_bl_rel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
+        ),
+        color="red",
+        linestyle="-",
+    )
+    f_bl_irrel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
+        ),
+        color="red",
+        linestyle="--",
+    )
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + baseline_models[1] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            # choices = choice_sigmoid(cc,T=tempval)
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_a = np.array(cmats_a)
+    cmats_b = np.array(cmats_b)
+    choices_rel = (cmats_a.mean(2) + cmats_b.mean(1)) / 2
+    choices_irrel = (cmats_a.mean(1) + cmats_b.mean(2)) / 2
+    bs = []
+    for y in choices_rel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["baseline"]["blocked"]["rel"] = np.asarray(bs)
+    bs = []
+    for y in choices_irrel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["baseline"]["blocked"]["irrel"] = np.asarray(bs)
+
+    pl_bl_rel = plt.errorbar(
+        np.arange(5),
+        choices_rel.mean(0),
+        yerr=np.std(choices_rel.mean(0)) / np.sqrt(n_runs),
+        marker="d",
+        color="darkred",
+        markersize=4,
+        linestyle="",
+    )
+    pl_bl_irrel = plt.errorbar(
+        np.arange(5),
+        choices_irrel.mean(0),
+        yerr=np.std(choices_irrel.mean(0)) / np.sqrt(n_runs),
+        marker="*",
+        color="darkred",
+        linestyle="",
+        markersize=4,
+    )
+    f_bl_rel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
+        ),
+        color="darkred",
+        linestyle="-",
+    )
+    f_bl_irrel = plt.plot(
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
+        ),
+        color="darkred",
+        linestyle="--",
+    )
+    plt.legend(
+        [pl_bl_rel[0], pl_bl_irrel[0], pl_in_rel[0], pl_in_irrel[0]],
+        ["blocked - rel", "blocked - irrel", "int - rel", "int - irrel"],
+        frameon=False,
+        fontsize=6,
+        loc=2,
+    )
+    plt.title("Baseline", fontsize=6)
+    plt.xlabel("feature value", fontsize=6)
+    plt.ylabel("p(accept)", fontsize=6)
+    plt.xticks(ticks=[0, 2, 4], labels=[1, 3, 5], fontsize=6)
+    plt.yticks(ticks=(0, 0.5, 1), fontsize=6)
+
+    plt.subplot(1, 3, 3)
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_a = np.array(cmats_a)
+    cmats_b = np.array(cmats_b)
+    choices_rel = (cmats_a.mean(2) + cmats_b.mean(1)) / 2
+    choices_irrel = (cmats_a.mean(1) + cmats_b.mean(2)) / 2
+
+    for y in choices_rel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["ema"]["int"]["rel"] = np.asarray(bs)
+    bs = []
+    for y in choices_irrel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["ema"]["int"]["irrel"] = np.asarray(bs)
+
+    pl_in_rel = plt.errorbar(
+        np.arange(5),
+        choices_rel.mean(0),
+        yerr=np.std(choices_rel.mean(0)) / np.sqrt(n_runs),
+        marker="o",
+        color=[50 / 255, 133 / 255, 168 / 255],
+        markersize=4,
+        linestyle="",
+    )
+    pl_in_irrel = plt.errorbar(
+        np.arange(5),
+        choices_irrel.mean(0),
+        yerr=np.std(choices_irrel.mean(0)) / np.sqrt(n_runs),
+        marker="*",
+        color=[50 / 255, 133 / 255, 168 / 255],
+        linestyle="",
+        markersize=4,
+    )
+    f_in_rel = plt.plot(  # noqa F841
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
+        ),
+        color=[50 / 255, 133 / 255, 168 / 255],
+        linestyle="-",
+    )
+    f_in_irrel = plt.plot(  # noqa F841
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
+        ),
+        color=[50 / 255, 133 / 255, 168 / 255],
+        linestyle="--",
+    )
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_a = np.array(cmats_a)
+    cmats_b = np.array(cmats_b)
+    choices_rel = (cmats_a.mean(2) + cmats_b.mean(1)) / 2
+    choices_irrel = (cmats_a.mean(1) + cmats_b.mean(2)) / 2
+    for y in choices_rel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["ema"]["blocked"]["rel"] = np.asarray(bs)
+    bs = []
+    for y in choices_irrel:
+        bs.append(choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), y, fitlapse=False))
+    betas["ema"]["blocked"]["irrel"] = np.asarray(bs)
+    pl_bl_rel = plt.errorbar(
+        np.arange(5),
+        choices_rel.mean(0),
+        yerr=np.std(choices_rel.mean(0)) / np.sqrt(n_runs),
+        marker="o",
+        color=[20 / 255, 78 / 255, 102 / 255],
+        markersize=4,
+        linestyle="",
+    )
+    pl_bl_irrel = plt.errorbar(
+        np.arange(5),
+        choices_irrel.mean(0),
+        yerr=np.std(choices_irrel.mean(0)) / np.sqrt(n_runs),
+        marker="*",
+        color=[20 / 255, 78 / 255, 102 / 255],
+        linestyle="",
+        markersize=4,
+    )
+    f_bl_rel = plt.plot(  # noqa F841
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
+        ),
+        color=[20 / 255, 78 / 255, 102 / 255],
+        linestyle="-",
+    )
+    f_bl_irrel = plt.plot(  # noqa F841
+        np.linspace(0, 4, 100),
+        eval.sigmoid(
+            np.linspace(-2, 2, 100),
+            *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
+        ),
+        color=[20 / 255, 78 / 255, 102 / 255],
+        linestyle="--",
+    )
+
+    sns.despine()
+    plt.legend(
+        [pl_bl_rel[0], pl_bl_irrel[0], pl_in_rel[0], pl_in_irrel[0]],
+        ["blocked - rel", "blocked - irrel", "int - rel", "int - irrel"],
+        frameon=False,
+        fontsize=6,
+        loc=2,
+    )
+    plt.title("EMA+Hebb", fontsize=6)
+    plt.xlabel("feature value", fontsize=6)
+    plt.ylabel("p(accept)", fontsize=6)
+    plt.xticks(ticks=[0, 2, 4], labels=[1, 3, 5], fontsize=6)
+    plt.yticks(ticks=(0, 0.5, 1), fontsize=6)
+    plt.suptitle("Choices", fontsize=6)
+    plt.tight_layout()
+
+    return betas
+
+
+def plot_modelcomparison_betas(betas: dict):
+
+    plt.figure(figsize=(3.2, 2.0), dpi=300)
+    # make figure
+    plt.subplot(1, 3, 1)
+
+    plt.bar(
+        np.arange(2),
+        [
+            betas["humans"]["blocked"]["rel"][:, 1].mean(),
+            betas["humans"]["int"]["rel"][:, 1].mean(),
+        ],
+        yerr=[
+            np.std(betas["humans"]["blocked"]["rel"][:, 1])
+            / np.sqrt(len(betas["humans"]["blocked"]["rel"][:, 1].T)),
+            np.std(betas["humans"]["int"]["rel"][:, 1])
+            / np.sqrt(len(betas["humans"]["int"]["rel"][:, 1].T)),
+        ],
+        color=[[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylabel("slope (a.u.)", fontsize=6)
+    plt.yticks(fontsize=6)
+    sns.despine()
+    plt.title("Humans", fontsize=6)
+    res = ttest_ind(
+        betas["humans"]["blocked"]["rel"][:, 1], betas["humans"]["int"]["rel"][:, 1]
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(z)
+    print(f"betas rel humans blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [6, 6], "k-", linewidth=1)
+    plt.text(0.5, 6, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 2)
+    plt.bar(
+        np.arange(2),
+        [
+            betas["baseline"]["blocked"]["rel"][:, 1].mean(),
+            betas["baseline"]["int"]["rel"][:, 1].mean(),
+        ],
+        yerr=[
+            np.std(betas["baseline"]["blocked"]["rel"][:, 1])
+            / np.sqrt(len(betas["baseline"]["blocked"]["rel"][:, 1].T)),
+            np.std(betas["baseline"]["int"]["rel"][:, 1])
+            / np.sqrt(len(betas["baseline"]["int"]["rel"][:, 1].T)),
+        ],
+        color=["darkred", "red"],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylabel("slope (a.u.)", fontsize=6)
+    plt.yticks(fontsize=6)
+    sns.despine()
+    plt.title("Baseline", fontsize=6)
+    res = ttest_ind(
+        betas["baseline"]["blocked"]["rel"][:, 1], betas["baseline"]["int"]["rel"][:, 1]
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"betas rel baseline blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [11, 11], "k-", linewidth=1)
+    plt.text(0.5, 11, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 3)
+    plt.bar(
+        np.arange(2),
+        [
+            betas["ema"]["blocked"]["rel"][:, 1].mean(),
+            betas["ema"]["int"]["rel"][:, 1].mean(),
+        ],
+        yerr=[
+            np.std(betas["ema"]["blocked"]["rel"][:, 1])
+            / np.sqrt(len(betas["ema"]["blocked"]["rel"][:, 1].T)),
+            np.std(betas["ema"]["int"]["rel"][:, 1])
+            / np.sqrt(len(betas["ema"]["int"]["rel"][:, 1].T)),
+        ],
+        color=[[20 / 255, 78 / 255, 102 / 255], [50 / 255, 133 / 255, 168 / 255]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylabel("slope (a.u.)", fontsize=6)
+    plt.yticks(fontsize=6)
+    sns.despine()
+
+    plt.title("EMA+Hebb", fontsize=6)
+    res = ttest_ind(
+        betas["ema"]["blocked"]["rel"][:, 1], betas["ema"]["int"]["rel"][:, 1]
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"betas rel ema blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [3, 3], "k-", linewidth=1)
+    plt.text(0.5, 3, sigstar, ha="center", fontsize=6)
+    plt.suptitle("Slopes, relevant dimension", fontsize=6)
+    plt.tight_layout()
+
+    plt.suptitle("Slopes, relevant dimension", fontsize=6)
+    plt.tight_layout()
+
+    plt.figure(figsize=(3.2, 2.0), dpi=300)
+    # make figure
+    plt.subplot(1, 3, 1)
+
+    plt.bar(
+        np.arange(2),
+        [
+            betas["humans"]["blocked"]["irrel"][:, 1].mean(),
+            betas["humans"]["int"]["irrel"][:, 1].mean(),
+        ],
+        yerr=[
+            np.std(betas["humans"]["blocked"]["irrel"][:, 1])
+            / np.sqrt(len(betas["humans"]["blocked"]["irrel"][:, 1].T)),
+            np.std(betas["humans"]["int"]["irrel"][:, 1])
+            / np.sqrt(len(betas["humans"]["int"]["irrel"][:, 1].T)),
+        ],
+        color=[[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylabel("slope (a.u.)", fontsize=6)
+    plt.yticks(fontsize=6)
+    sns.despine()
+    plt.title("Humans", fontsize=6)
+    res = ttest_ind(
+        betas["humans"]["blocked"]["irrel"][:, 1], betas["humans"]["int"]["irrel"][:, 1]
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"betas irrel humans blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    else:
+        sigstar = "*" * 4
+    plt.plot([0, 1], [0.4, 0.4], "k-", linewidth=1)
+    plt.text(0.5, 0.4, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 2)
+    plt.bar(
+        np.arange(2),
+        [
+            betas["baseline"]["blocked"]["irrel"][:, 1].mean(),
+            betas["baseline"]["int"]["irrel"][:, 1].mean(),
+        ],
+        yerr=[
+            np.std(betas["baseline"]["blocked"]["irrel"][:, 1])
+            / np.sqrt(len(betas["baseline"]["blocked"]["irrel"][:, 1].T)),
+            np.std(betas["baseline"]["int"]["irrel"][:, 1])
+            / np.sqrt(len(betas["baseline"]["int"]["irrel"][:, 1].T)),
+        ],
+        color=["darkred", "red"],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylabel("slope (a.u.)", fontsize=6)
+    plt.yticks(fontsize=6)
+    sns.despine()
+    plt.title("Baseline", fontsize=6)
+    res = ttest_ind(
+        betas["baseline"]["blocked"]["irrel"][:, 1],
+        betas["baseline"]["int"]["irrel"][:, 1],
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"betas irrel baseline blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    else:
+        sigstar = "*" * 4
+    plt.plot([0, 1], [1.2, 1.2], "k-", linewidth=1)
+    plt.text(0.5, 1.2, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 3)
+    plt.bar(
+        np.arange(2),
+        [
+            betas["ema"]["blocked"]["irrel"][:, 1].mean(),
+            betas["ema"]["int"]["irrel"][:, 1].mean(),
+        ],
+        yerr=[
+            np.std(betas["ema"]["blocked"]["irrel"][:, 1])
+            / np.sqrt(len(betas["ema"]["blocked"]["irrel"][:, 1].T)),
+            np.std(betas["ema"]["int"]["irrel"][:, 1])
+            / np.sqrt(len(betas["ema"]["int"]["irrel"][:, 1].T)),
+        ],
+        color=[[20 / 255, 78 / 255, 102 / 255], [50 / 255, 133 / 255, 168 / 255]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylabel("slope (a.u.)", fontsize=6)
+    plt.yticks(fontsize=6)
+    sns.despine()
+    plt.title("EMA+Hebb", fontsize=6)
+    res = ttest_ind(
+        betas["ema"]["blocked"]["irrel"][:, 1], betas["ema"]["int"]["irrel"][:, 1]
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"betas irrel ema blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    else:
+        sigstar = "*" * 4
+    plt.plot([0, 1], [0.4, 0.4], "k-", linewidth=1)
+    plt.text(0.5, 0.4, sigstar, ha="center", fontsize=6)
+
+    plt.suptitle("Slopes, irrelevant dimension", fontsize=6)
+    plt.tight_layout()
+
+
+def plot_modelcomparison_choicemats(
+    baseline_models: List[str] = [
+        "baseline_interleaved_new_select",
+        "baseline_blocked_new_select",
+    ],
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.1,
+    slope_blocked: int = 14,
+    slope_int: int = 14,
+    n_runs: int = 20,
+) -> dict:
+    # sigmoids
+    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
+
+    sluggishness = 0.1
+    idx = np.where(sluggish_vals == sluggishness)[0][0]
+    slope_blocked = 14
+    tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
+    slope_int = 14
+    tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
+
+    cmats = loadmat("../datasets/choicemats_exp1a.mat", matlab_compatible=True)
+    ks = list(cmats.keys())
+    for k in ks:
+        if "cmat" not in k:
+            cmats.pop(k)
+    cmats_human = {
+        "int_a": cmats["cmat_i_north"],
+        "int_b": cmats["cmat_i_south"],
+        "bloc_a": cmats["cmat_b_north"],
+        "bloc_b": cmats["cmat_b_south"],
+    }
+
+    # baseline cmats
+    cmats_baseline = {}
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + baseline_models[0] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_baseline["int_a"] = np.array(cmats_a)
+    cmats_baseline["int_b"] = np.array(cmats_b)
+
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + baseline_models[1] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_baseline["bloc_a"] = np.array(cmats_a)
+    cmats_baseline["bloc_b"] = np.array(cmats_b)
+
+    # ema+sla cmats
+    cmats_emasla = {}
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_emasla["int_a"] = np.array(cmats_a)
+    cmats_emasla["int_b"] = np.array(cmats_b)
+
+    cmats_a = []
+    cmats_b = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl", "rb"
+        ) as f:
+            results = pickle.load(f)
+            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            choices = 1 / (1 + np.exp(-cc))
+            choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
+            cmats_a.append(choices[:25].reshape(5, 5))
+            cmats_b.append(choices[25:].reshape(5, 5))
+
+    cmats_emasla["bloc_a"] = np.array(cmats_a)
+    cmats_emasla["bloc_b"] = np.array(cmats_b)
+
+    # task factorisation (behav)
+    betas_human = eval.compute_behav_taskfact(cmats_human)
+    betas_baseline = eval.compute_behav_taskfact(cmats_baseline)
+    betas_emasla = eval.compute_behav_taskfact(cmats_emasla)
+
+    f = plt.figure(figsize=(4.8, 2.3), dpi=300)
+    plt.subplot(1, 3, 1)
+    # blocked
+    ha = plt.bar(
+        0 - 0.2,
+        np.mean(betas_human["bloc"][:, 0], 0),
+        yerr=np.std(betas_human["bloc"][:, 0], 0)
+        / np.sqrt(betas_human["bloc"][:, 0].shape[0]),
+        width=0.4,
+        color="darkblue",
+    )
+    hb = plt.bar(
+        0 + 0.2,
+        np.mean(betas_human["bloc"][:, 1], 0),
+        yerr=np.std(betas_human["bloc"][:, 1], 0)
+        / np.sqrt(betas_human["bloc"][:, 1].shape[0]),
+        width=0.4,
+        color="darkgreen",
+    )
+    # interleaved
+    ha = plt.bar(
+        1 - 0.2,
+        np.mean(betas_human["int"][:, 0], 0),
+        yerr=np.std(betas_human["int"][:, 0], 0)
+        / np.sqrt(betas_human["int"][:, 0].shape[0]),
+        width=0.4,
+        color="darkblue",
+    )
+    hb = plt.bar(
+        1 + 0.2,
+        np.mean(betas_human["int"][:, 1], 0),
+        yerr=np.std(betas_human["int"][:, 1], 0)
+        / np.sqrt(betas_human["int"][:, 1].shape[0]),
+        width=0.4,
+        color="darkgreen",
+    )
+    # stats factorised model
+    res = ttest_ind(betas_human["bloc"][:, 0], betas_human["int"][:, 0])
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(
+        f"humans factorised model blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}"
+    )
+    # stats linear models
+    res = ttest_ind(betas_human["bloc"][:, 1], betas_human["int"][:, 1])
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"humans linear model blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+
+    # stats interaction (with bars)
+    res = ttest_ind(
+        betas_human["bloc"][:, 0] - betas_human["bloc"][:, 1],
+        betas_human["int"][:, 0] - betas_human["int"][:, 1],
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"humans interaction blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [1, 1], "k-", linewidth=1)
+    plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
+
+    sns.despine()
+    plt.legend(
+        [ha, hb], ("factorised model", "linear model"), frameon=False, fontsize=6
+    )
+    plt.ylabel(r"$\beta$ coefficient (a.u.)", fontsize=6)
+    # plt.xlabel(r'sluggishness ($1-\alpha$)')
+    plt.title("Humans", fontsize=6)
+    plt.xticks([0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    ax = plt.gca()
+    plt.yticks(
+        ticks=[0, 0.25, 0.5, 0.75, 1], labels=[0, 0.25, 0.5, 0.75, 1], fontsize=6
+    )
+
+    plt.subplot(1, 3, 2)
+    # blocked
+    ha = plt.bar(
+        0 - 0.2,
+        np.mean(betas_baseline["bloc"][:, 0], 0),
+        yerr=np.std(betas_baseline["bloc"][:, 0], 0)
+        / np.sqrt(betas_baseline["bloc"][:, 0].shape[0]),
+        width=0.4,
+        color="darkblue",
+    )
+    hb = plt.bar(
+        0 + 0.2,
+        np.mean(betas_baseline["bloc"][:, 1], 0),
+        yerr=np.std(betas_baseline["bloc"][:, 1], 0)
+        / np.sqrt(betas_baseline["bloc"][:, 1].shape[0]),
+        width=0.4,
+        color="darkgreen",
+    )
+    # interleaved
+    ha = plt.bar(
+        1 - 0.2,
+        np.mean(betas_baseline["int"][:, 0], 0),
+        yerr=np.std(betas_baseline["int"][:, 0], 0)
+        / np.sqrt(betas_baseline["int"][:, 0].shape[0]),
+        width=0.4,
+        color="darkblue",
+    )
+    hb = plt.bar(
+        1 + 0.2,
+        np.mean(betas_baseline["int"][:, 1], 0),
+        yerr=np.std(betas_baseline["int"][:, 1], 0)
+        / np.sqrt(betas_baseline["int"][:, 1].shape[0]),
+        width=0.4,
+        color="darkgreen",
+    )
+
+    # stats factorised model
+    res = ttest_ind(betas_baseline["bloc"][:, 0], betas_baseline["int"][:, 0])
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(
+        f"baseline factorised model blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}"
+    )
+    # stats linear models
+    res = ttest_ind(betas_baseline["bloc"][:, 1], betas_baseline["int"][:, 1])
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(
+        f"baseline linear model blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}"
+    )
+
+    # stats interaction (with bars)
+    res = ttest_ind(
+        betas_baseline["bloc"][:, 0] - betas_baseline["bloc"][:, 1],
+        betas_baseline["int"][:, 0] - betas_baseline["int"][:, 1],
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"baseline interaction blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [1, 1], "k-", linewidth=1)
+    plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
+
+    sns.despine()
+    plt.legend(
+        [ha, hb], ("factorised model", "linear model"), frameon=False, fontsize=6
+    )
+    plt.ylabel(r"$\beta$ coefficient (a.u.)", fontsize=6)
+    # plt.xlabel(r'sluggishness ($1-\alpha$)')
+    plt.title("Baseline", fontsize=6)
+    plt.xticks([0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    ax = plt.gca()
+    plt.yticks(
+        ticks=[0, 0.25, 0.5, 0.75, 1], labels=[0, 0.25, 0.5, 0.75, 1], fontsize=6
+    )
+
+    plt.subplot(1, 3, 3)
+    # blocked
+    ha = plt.bar(
+        0 - 0.2,
+        np.mean(betas_emasla["bloc"][:, 0], 0),
+        yerr=np.std(betas_emasla["bloc"][:, 0], 0)
+        / np.sqrt(betas_emasla["bloc"][:, 0].shape[0]),
+        width=0.4,
+        color="darkblue",
+    )
+    hb = plt.bar(
+        0 + 0.2,
+        np.mean(betas_emasla["bloc"][:, 1], 0),
+        yerr=np.std(betas_emasla["bloc"][:, 1], 0)
+        / np.sqrt(betas_emasla["bloc"][:, 1].shape[0]),
+        width=0.4,
+        color="darkgreen",
+    )
+    # interleaved
+    ha = plt.bar(
+        1 - 0.2,
+        np.mean(betas_emasla["int"][:, 0], 0),
+        yerr=np.std(betas_emasla["int"][:, 0], 0)
+        / np.sqrt(betas_emasla["int"][:, 0].shape[0]),
+        width=0.4,
+        color="darkblue",
+    )
+    hb = plt.bar(
+        1 + 0.2,
+        np.mean(betas_emasla["int"][:, 1], 0),
+        yerr=np.std(betas_emasla["int"][:, 1], 0)
+        / np.sqrt(betas_emasla["int"][:, 1].shape[0]),
+        width=0.4,
+        color="darkgreen",
+    )
+    sns.despine()
+    # stats factorised model
+    res = ttest_ind(betas_emasla["bloc"][:, 0], betas_emasla["int"][:, 0])
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"oja factorised model blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    # stats linear models
+    res = ttest_ind(betas_emasla["bloc"][:, 1], betas_emasla["int"][:, 1])
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"oja linear model blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+
+    # stats interaction (with bars)
+    res = ttest_ind(
+        betas_emasla["bloc"][:, 0] - betas_emasla["bloc"][:, 1],
+        betas_emasla["int"][:, 0] - betas_emasla["int"][:, 1],
+    )
+    z = res.statistic  # norm.isf(res.pvalue/2)
+    print(f"oja interaction blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+
+    plt.plot([0, 1], [1, 1], "k-", linewidth=1)
+    plt.text(0.5, 1, sigstar, ha="center", fontsize=6)
+
+    plt.legend(
+        [ha, hb], ("factorised model", "linear model"), frameon=False, fontsize=6
+    )
+    plt.ylabel(r"$\beta$ coefficient (a.u.)", fontsize=6)
+    # plt.xlabel(r'sluggishness ($1-\alpha$)')
+    plt.title("EMA+Hebb", fontsize=6)
+    plt.xticks([0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    ax = plt.gca()  # noqa F841
+    plt.yticks(
+        ticks=[0, 0.25, 0.5, 0.75, 1], labels=[0, 0.25, 0.5, 0.75, 1], fontsize=6
+    )
+
+    plt.tight_layout()
+    return {"human": cmats_human, "baseline": cmats_baseline, "emahebb": cmats_emasla}
+
+
+def plot_modelcomparison_choicemodel():
+
+    try:
+        with open("../results/thetas_est.pkl", "rb") as f:
+            all_thetas = pickle.load(f)
+        disp_model_estimates(
+            all_thetas["humans"], cols=([0.2, 0.2, 0.2], [0.5, 0.5, 0.5])
+        )
+        disp_model_estimates(all_thetas["baseline"], cols=["darkred", "red"])
+        disp_model_estimates(
+            all_thetas["emahebb"],
+            cols=[[20 / 255, 78 / 255, 102 / 255], [50 / 255, 133 / 255, 168 / 255]],
+        )
+    except FileNotFoundError:
+
+        # best fitting with oja slug models:
+        alpha = 0.1
+        idx = np.where(sluggish_vals == alpha)[0][0]
+        tempidx_blocked = 14
+        tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[tempidx_blocked]
+        tempidx_interleaved = 14
+        tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[
+            tempidx_interleaved
+        ]
+        n_runs = 20
+
+        cmats = loadmat("../datasets/choicemats_exp1a.mat")
+        cmats.keys()
+        choicemats_humans = {
+            "blocked": {
+                "task_a": cmats["cmat_b_south"],
+                "task_b": cmats["cmat_b_north"],
+            },
+            "interleaved": {
+                "task_a": cmats["cmat_i_south"],
+                "task_b": cmats["cmat_i_north"],
+            },
+        }
+
+        choicemats_baseline = {
+            "blocked": {"task_a": [], "task_b": []},
+            "interleaved": {"task_a": [], "task_b": []},
+        }
+
+        choicemats_sla = {
+            "blocked": {"task_a": [], "task_b": []},
+            "interleaved": {"task_a": [], "task_b": []},
+        }
+
+        # baseline --------------------------------
+        n_runs = 20
+
+        cmats_a = []
+        cmats_b = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/baseline_blocked_new_select/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        choicemats_baseline["blocked"]["task_b"] = np.array(cmats_a)
+        choicemats_baseline["blocked"]["task_a"] = np.array(cmats_b)
+
+        cmats_a = []
+        cmats_b = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/baseline_interleaved_new_select/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        choicemats_baseline["interleaved"]["task_b"] = np.array(cmats_a)
+        choicemats_baseline["interleaved"]["task_a"] = np.array(cmats_b)
+
+        # oja ------------------------------------------
+        sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
+        # alpha = 0.2
+        # idx = np.where(alpha==sluggish_vals)[0][0]
+        cmats_a = []
+        cmats_b = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/oja_blocked_new_select_halfcenter/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                choices = choicemodel.choicemodel.choice_sigmoid(cc, T=tempval_blocked)
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        choicemats_sla["blocked"]["task_b"] = np.array(cmats_a)
+        choicemats_sla["blocked"]["task_a"] = np.array(cmats_b)
+
+        cmats_a = []
+        cmats_b = []
+        for r in np.arange(0, n_runs):
+            with open(
+                "../checkpoints/sluggish_oja_int_select_sv"
+                + str(idx)
+                + "/run_"
+                + str(r)
+                + "/results.pkl",
+                "rb",
+            ) as f:
+                results = pickle.load(f)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
+                choices = 1 / (1 + np.exp(-cc))
+                choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
+
+        choicemats_sla["interleaved"]["task_b"] = np.array(cmats_a)
+        choicemats_sla["interleaved"]["task_a"] = np.array(cmats_b)
+
+        thetas_humans = {}
+        for cur in ["blocked", "interleaved"]:
+            thetas_humans[cur] = choicemodel.fit_model_to_subjects(
+                choicemats_humans[cur], n_runs=1
+            )
+
+        thetas_baseline = {}
+        for cur in ["blocked", "interleaved"]:
+            thetas_baseline[cur] = choicemodel.fit_model_to_subjects(
+                choicemats_baseline[cur], n_runs=1
+            )
+
+        thetas_oja = {}
+        for cur in ["blocked", "interleaved"]:
+            thetas_oja[cur] = choicemodel.fit_model_to_subjects(
+                choicemats_sla[cur], n_runs=1
+            )
+
+        all_thetas = {
+            "humans": thetas_humans,
+            "baseline": thetas_baseline,
+            "emahebb": thetas_oja,
+        }
+
+        # with open('../results/thetas_est.pkl','rb') as f:
+        #     all_thetas = pickle.load(f)
+
+        # all_thetas['emahebb'] = thetas_oja
+        with open("../results/thetas_est.pkl", "wb") as f:
+            pickle.dump(all_thetas, f)
+
+
+def plot_modelcomparison_congruency(cmats: dict):
+    _, _, cmats_model = eval.gen_behav_models()
+    cmat_a = cmats_model[0, 0, :, :]
+    cmat_b = cmats_model[0, 1, :, :]
+    # human
+    acc_congr_human = {}
+    curricula = ("bloc", "int")
+    for c in curricula:
+        acc_congr_human[c] = []
+        for ii in range(len(cmats["human"][c + "_a"])):
+            c_a = cmats["human"][c + "_a"][ii, :, :]
+            c_b = cmats["human"][c + "_b"][ii, :, :]
+            # compute congruency effect:
+            accc_a, acci_a = eval.compute_congruency_acc(c_a, cmat_a)
+            accc_b, acci_b = eval.compute_congruency_acc(c_b, cmat_b)
+            acc_congr_human[c].append([(accc_a + accc_b) / 2 - (acci_a + acci_b) / 2])
+        acc_congr_human[c] = np.asarray(acc_congr_human[c])
+
+    # baseline
+    acc_congr_baseline = {}
+    curricula = ("bloc", "int")
+    for c in curricula:
+        acc_congr_baseline[c] = []
+        for ii in range(len(cmats["baseline"][c + "_a"])):
+            c_a = cmats["baseline"][c + "_a"][ii, :, :]
+            c_b = cmats["baseline"][c + "_b"][ii, :, :]
+            # compute congruency effect:
+            accc_a, acci_a = eval.compute_congruency_acc(c_a, cmat_a)
+            accc_b, acci_b = eval.compute_congruency_acc(c_b, cmat_b)
+            acc_congr_baseline[c].append(
+                [(accc_a + accc_b) / 2 - (acci_a + acci_b) / 2]
+            )
+        acc_congr_baseline[c] = np.asarray(acc_congr_baseline[c])
+
+    # ema+sla
+    acc_congr_emasla = {}
+    curricula = ("bloc", "int")
+    for c in curricula:
+        acc_congr_emasla[c] = []
+        for ii in range(len(cmats["emahebb"][c + "_a"])):
+            c_a = cmats["emahebb"][c + "_a"][ii, :, :]
+            c_b = cmats["emahebb"][c + "_b"][ii, :, :]
+            # compute congruency effect:
+            accc_a, acci_a = eval.compute_congruency_acc(c_a, cmat_a)
+            accc_b, acci_b = eval.compute_congruency_acc(c_b, cmat_b)
+            acc_congr_emasla[c].append([(accc_a + accc_b) / 2 - (acci_a + acci_b) / 2])
+        acc_congr_emasla[c] = np.asarray(acc_congr_emasla[c])
+
+    plt.figure(figsize=(3.2, 2.0), dpi=300)
+    # make figure
+    plt.subplot(1, 3, 1)
+    accs = loadmat("../datasets/accs_exp1a.mat")
+    plt.bar(
+        np.arange(2),
+        [acc_congr_human["bloc"].mean(), acc_congr_human["int"].mean()],
+        yerr=[
+            np.std(acc_congr_human["bloc"]) / np.sqrt(len(acc_congr_human["bloc"])),
+            np.std(acc_congr_human["int"]) / np.sqrt(len(acc_congr_human["int"])),
+        ],
+        color=[[0.2, 0.2, 0.2], [0.5, 0.5, 0.5]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylim((0, 0.5))
+    plt.yticks(
+        ticks=plt.yticks()[0],
+        labels=(int(x) for x in plt.yticks()[0] * 100),
+        fontsize=6,
+    )
+    plt.ylabel("accuracy difference (%)", fontsize=6)
+    sns.despine()
+    plt.title("Humans", fontsize=6)
+    res = ttest_ind(acc_congr_human["bloc"].ravel(), acc_congr_human["int"].ravel())
+    z = res.statistic  # norm.isf(res.pvalue / 2)
+    print(f"humans, congruency blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([0, 1], [0.5, 0.5], "k-", linewidth=1)
+    plt.text(0.5, 0.5, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 2)
+    plt.bar(
+        np.arange(2),
+        [acc_congr_baseline["bloc"].mean(), acc_congr_baseline["int"].mean()],
+        yerr=[
+            np.std(acc_congr_baseline["bloc"])
+            / np.sqrt(len(acc_congr_baseline["bloc"])),
+            np.std(acc_congr_baseline["int"]) / np.sqrt(len(acc_congr_baseline["int"])),
+        ],
+        color=["darkred", "red"],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.yticks(
+        ticks=plt.yticks()[0],
+        labels=(int(x) for x in plt.yticks()[0] * 100),
+        fontsize=6,
+    )
+    plt.ylabel("accuracy difference (%)", fontsize=6)
+    plt.ylim((0, 0.5))
+    sns.despine()
+    plt.title("Baseline", fontsize=6)
+    res = ttest_ind(
+        acc_congr_baseline["bloc"].ravel(), acc_congr_baseline["int"].ravel()
+    )
+    z = res.statistic  # norm.isf(res.pvalue / 2)
+    print(
+        f"baselines, congruency blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}"
+    )
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([0, 1], [0.5, 0.5], "k-", linewidth=1)
+    plt.text(0.5, 0.5, sigstar, ha="center", fontsize=6)
+
+    plt.subplot(1, 3, 3)
+    plt.bar(
+        np.arange(2),
+        [acc_congr_emasla["bloc"].mean(), acc_congr_emasla["int"].mean()],
+        yerr=[
+            np.std(acc_congr_emasla["bloc"]) / np.sqrt(len(acc_congr_emasla["bloc"])),
+            np.std(acc_congr_emasla["int"]) / np.sqrt(len(acc_congr_emasla["int"])),
+        ],
+        color=[[20 / 255, 78 / 255, 102 / 255], [0.5 / 255, 133 / 255, 168 / 255]],
+        width=0.8,
+    )
+    plt.xticks(ticks=[0, 1], labels=["blocked", "interleaved"], rotation=90, fontsize=6)
+    plt.ylim((0, 0.5))
+    plt.yticks(
+        ticks=plt.yticks()[0],
+        labels=(int(x) for x in plt.yticks()[0] * 100),
+        fontsize=6,
+    )
+    plt.ylabel("accuracy difference (%)", fontsize=6)
+    sns.despine()
+    plt.title("EMA+Hebb", fontsize=6)
+    res = ttest_ind(acc_congr_emasla["bloc"].ravel(), acc_congr_emasla["int"].ravel())
+    z = res.statistic  # norm.isf(res.pvalue / 2)
+    print(f"oja, congruency blocked vs interleaved: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([0, 1], [0.5, 0.5], "k-", linewidth=1)
+    plt.text(0.5, 0.5, sigstar, ha="center", fontsize=6)
+
+    plt.suptitle("Congruency Effect", fontsize=6)
     plt.tight_layout()
