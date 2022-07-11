@@ -1,3 +1,4 @@
+from copy import deepcopy
 import pickle
 from typing import Tuple, Union
 import numpy as np
@@ -13,6 +14,9 @@ from scipy.stats import zscore
 from sklearn.linear_model import LinearRegression
 from sklearn.manifold import MDS
 from utils import eval
+from hebbcl.parameters import parser
+from utils import data
+from sklearn.decomposition import PCA
 
 
 def sem(x: np.array, ax: int) -> Union[float, np.array]:
@@ -131,12 +135,14 @@ def helper_make_colormap(
     """creates a colormap with custom values and spacing
 
     Args:
-        basecols (np.array, optional): colours used for interpolation. Defaults to np.array([[63, 39, 24], [64, 82, 21], [65, 125, 18], [66, 168, 15], [68, 255, 10]])/255.
+        basecols (np.array, optional): colours used for interpolation. Defaults to
+        np.array([[63, 39, 24], [64, 82, 21], [65, 125, 18], [66, 168, 15], [68, 255, 10]])/255.
         n_items (int, optional): number of samples from cmap (i.e. resolution). Defaults to 5.
         monitor (bool, optional): plot results y/n. Defaults to False.
 
     Returns:
-        Tuple[LinearSegmentedColormap, np.array]: segmented cmap (from matplotlib.colors), as well as array with rgb vals
+        Tuple[LinearSegmentedColormap, np.array]: segmented cmap (from matplotlib.colors), as well as
+        array with rgb vals
     """
 
     # turn basecols into list of tuples
@@ -654,17 +660,166 @@ def plot_basicstats(
         models (list, optional): _description_. Defaults to ['baseline_interleaved_new_select',
         'baseline_blocked_new_select'].
     """
+    if len(models) == 2:
+        # acc
+        f1, axs1 = plt.subplots(2, 1, figsize=(2.7, 3), dpi=300)
+        # # unit alloc
+        f2, axs2 = plt.subplots(2, 1, figsize=(2.7, 3), dpi=300)
+        # # context corr
+        f3, axs3 = plt.subplots(2, 1, figsize=(2.7, 3), dpi=300)
+        # # choice matrices
+        f4, axs4 = plt.subplots(2, 2, figsize=(5, 5), dpi=300)
 
-    # acc
-    f1, axs1 = plt.subplots(2, 1, figsize=(2.7, 3), dpi=300)
-    # # unit alloc
-    f2, axs2 = plt.subplots(2, 1, figsize=(2.7, 3), dpi=300)
-    # # context corr
-    f3, axs3 = plt.subplots(2, 1, figsize=(2.7, 3), dpi=300)
-    # # choice matrices
-    f4, axs4 = plt.subplots(2, 2, figsize=(5, 5), dpi=300)
+        for i, m in enumerate(models):
+            t_a = np.empty((n_runs, n_epochs))
+            t_b = np.empty((n_runs, n_epochs))
+            t_d = np.empty((n_runs, n_epochs))
+            t_mixed = np.empty((n_runs, n_epochs))
+            acc_1st = np.empty((n_runs, n_epochs))
+            acc_2nd = np.empty((n_runs, n_epochs))
+            contextcorr = np.empty((n_runs, n_epochs))
+            cmats_a = []
+            cmats_b = []
 
-    for i, m in enumerate(models):
+            for r in range(n_runs):
+                with open(
+                    "../checkpoints/" + m + "/run_" + str(r) + "/results.pkl", "rb"
+                ) as f:
+                    results = pickle.load(f)
+
+                    # accuracy:
+                    acc_1st[r, :] = results["acc_1st"]
+                    acc_2nd[r, :] = results["acc_2nd"]
+                    # task factorisation:
+                    t_a[r, :] = results["n_only_b_regr"] / 100
+                    t_b[r, :] = results["n_only_a_regr"] / 100
+                    t_d[r, :] = results["n_dead"] / 100
+                    t_mixed[r, :] = 1 - t_a[r, :] - t_b[r, :] - t_d[r, :]
+                    # context correlation:
+                    contextcorr[r, :] = results["w_context_corr"]
+                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                        np.float64
+                    )
+                    choices = 1 / (1 + np.exp(-cc))
+                    cmats_a.append(choices[:25].reshape(5, 5))
+                    cmats_b.append(choices[25:].reshape(5, 5))
+
+            cmats_a = np.array(cmats_a)
+            cmats_b = np.array(cmats_b)
+
+            # accuracy
+            axs1[i].plot(np.arange(n_epochs), acc_1st.mean(0), color="orange")
+            axs1[i].fill_between(
+                np.arange(n_epochs),
+                acc_1st.mean(0) - np.std(acc_1st, 0) / np.sqrt(n_runs),
+                acc_1st.mean(0) + np.std(acc_1st, 0) / np.sqrt(n_runs),
+                alpha=0.5,
+                color="orange",
+                edgecolor=None,
+            )
+            axs1[i].plot(np.arange(n_epochs), acc_2nd.mean(0), color="blue")
+            axs1[i].fill_between(
+                np.arange(n_epochs),
+                acc_2nd.mean(0) - np.std(acc_2nd, 0) / np.sqrt(n_runs),
+                acc_2nd.mean(0) + np.std(acc_2nd, 0) / np.sqrt(n_runs),
+                alpha=0.5,
+                color="blue",
+                edgecolor=None,
+            )
+            axs1[i].set_ylim([0.4, 1.05])
+            axs1[i].set(xlabel="trial", ylabel="accuracy")
+            axs1[i].legend(["1st task", "2nd task"], frameon=False)
+            if "interleaved" not in m:
+                axs1[i].plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
+            axs1[i].set_title(m.split("_")[1])
+            plt.gcf()
+            sns.despine(f1)
+            f1.tight_layout()
+
+            # unit allocation (task factorisation)
+            axs2[i].plot(np.arange(n_epochs), t_b.mean(0), color="orange")
+            axs2[i].fill_between(
+                np.arange(n_epochs),
+                t_b.mean(0) - np.std(t_b, 0) / np.sqrt(n_runs),
+                t_b.mean(0) + np.std(t_b, 0) / np.sqrt(n_runs),
+                alpha=0.5,
+                color="orange",
+                edgecolor=None,
+            )
+            axs2[i].plot(np.arange(n_epochs), t_a.mean(0), color="blue")
+            axs2[i].fill_between(
+                np.arange(n_epochs),
+                t_a.mean(0) - np.std(t_a, 0) / np.sqrt(n_runs),
+                t_a.mean(0) + np.std(t_a, 0) / np.sqrt(n_runs),
+                alpha=0.5,
+                color="blue",
+                edgecolor=None,
+            )
+            axs2[i].set_yticks([0, 0.5, 1])
+            ticks = axs2[i].get_yticks()  # plt.yticks()
+            axs2[i].set_yticklabels((int(x) for x in ticks * 100))
+            axs2[i].set(xlabel="trial", ylabel="task-sel (%)")
+            axs2[i].legend(["1st task", "2nd task"], frameon=False)
+            if "interleaved" not in m:
+                axs2[i].plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
+            axs2[i].set_title(m.split("_")[1])
+            plt.gcf()
+            sns.despine(f2)
+            axs2[i].set_ylim([0, 1.05])
+            f2.tight_layout()
+
+            # context corr
+            axs3[i].plot(np.arange(n_epochs), contextcorr.mean(0), color="k")
+            axs3[i].fill_between(
+                np.arange(n_epochs),
+                contextcorr.mean(0) - np.std(contextcorr, 0) / np.sqrt(n_runs),
+                contextcorr.mean(0) + np.std(contextcorr, 0) / np.sqrt(n_runs),
+                alpha=0.5,
+                color="magenta",
+                edgecolor=None,
+            )
+
+            axs3[i].set_ylim([-1.1, 1.05])
+            axs3[i].set(xlabel="trial", ylabel=r"$w_{context}$ corr ")
+            if "interleaved" not in m:
+                axs3[i].plot([n_epochs / 2, n_epochs / 2], [-1, 1], "k--", alpha=0.5)
+            axs3[i].set_title(m.split("_")[1])
+            sns.despine(f3)
+            f3.tight_layout()
+
+            # choice matrices
+            axs4[i, 0].imshow(cmats_a.mean(0))
+            axs4[i, 0].set_title("1st task")
+            axs4[i, 0].set(
+                xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="irrel", ylabel="rel"
+            )
+            axs4[i, 1].imshow(cmats_b.mean(0))
+            axs4[i, 1].set(
+                xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="rel", ylabel="irrel"
+            )
+            axs4[i, 1].set_title("2nd task")
+            # PCM = axs4[i, 1].get_children()[
+            #     -2
+            # ]  # get the mappable, the 1st and the 2nd are the x and y axes
+
+            # plt.subplots_adjust(bottom=0.1, right=0.8, top=0.9)
+            # cax = plt.axes([0.85, 0.1, 0.075, 0.8])
+            # plt.colorbar(PCM, cax=cax)
+    elif len(models) == 1 or type(models) == str:
+        if type(models) == list:
+            m = models[0]
+        else:
+            m = models
+        # acc
+        f1, axs1 = plt.subplots(1, 1, figsize=(2.7, 2), dpi=300)
+        # # unit alloc
+        f2, axs2 = plt.subplots(1, 1, figsize=(2.7, 2), dpi=300)
+        # # context corr
+        f3, axs3 = plt.subplots(1, 1, figsize=(2.7, 2), dpi=300)
+        # # choice matrices
+        f4, axs4 = plt.subplots(1, 2, figsize=(5, 5), dpi=300)
+        # # hidden layer MDS, interleaved
+
         t_a = np.empty((n_runs, n_epochs))
         t_b = np.empty((n_runs, n_epochs))
         t_d = np.empty((n_runs, n_epochs))
@@ -702,8 +857,8 @@ def plot_basicstats(
         cmats_b = np.array(cmats_b)
 
         # accuracy
-        axs1[i].plot(np.arange(n_epochs), acc_1st.mean(0), color="orange")
-        axs1[i].fill_between(
+        axs1.plot(np.arange(n_epochs), acc_1st.mean(0), color="orange")
+        axs1.fill_between(
             np.arange(n_epochs),
             acc_1st.mean(0) - np.std(acc_1st, 0) / np.sqrt(n_runs),
             acc_1st.mean(0) + np.std(acc_1st, 0) / np.sqrt(n_runs),
@@ -711,8 +866,8 @@ def plot_basicstats(
             color="orange",
             edgecolor=None,
         )
-        axs1[i].plot(np.arange(n_epochs), acc_2nd.mean(0), color="blue")
-        axs1[i].fill_between(
+        axs1.plot(np.arange(n_epochs), acc_2nd.mean(0), color="blue")
+        axs1.fill_between(
             np.arange(n_epochs),
             acc_2nd.mean(0) - np.std(acc_2nd, 0) / np.sqrt(n_runs),
             acc_2nd.mean(0) + np.std(acc_2nd, 0) / np.sqrt(n_runs),
@@ -720,19 +875,19 @@ def plot_basicstats(
             color="blue",
             edgecolor=None,
         )
-        axs1[i].set_ylim([0.4, 1.05])
-        axs1[i].set(xlabel="trial", ylabel="accuracy")
-        axs1[i].legend(["1st task", "2nd task"], frameon=False)
+        axs1.set_ylim([0.4, 1.05])
+        axs1.set(xlabel="trial", ylabel="accuracy")
+        axs1.legend(["1st task", "2nd task"], frameon=False)
         if "interleaved" not in m:
-            axs1[i].plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
-        axs1[i].set_title(m.split("_")[1])
+            axs1.plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
+        axs1.set_title(m.split("_")[1])
         plt.gcf()
         sns.despine(f1)
         f1.tight_layout()
 
         # unit allocation (task factorisation)
-        axs2[i].plot(np.arange(n_epochs), t_b.mean(0), color="orange")
-        axs2[i].fill_between(
+        axs2.plot(np.arange(n_epochs), t_b.mean(0), color="orange")
+        axs2.fill_between(
             np.arange(n_epochs),
             t_b.mean(0) - np.std(t_b, 0) / np.sqrt(n_runs),
             t_b.mean(0) + np.std(t_b, 0) / np.sqrt(n_runs),
@@ -740,8 +895,8 @@ def plot_basicstats(
             color="orange",
             edgecolor=None,
         )
-        axs2[i].plot(np.arange(n_epochs), t_a.mean(0), color="blue")
-        axs2[i].fill_between(
+        axs2.plot(np.arange(n_epochs), t_a.mean(0), color="blue")
+        axs2.fill_between(
             np.arange(n_epochs),
             t_a.mean(0) - np.std(t_a, 0) / np.sqrt(n_runs),
             t_a.mean(0) + np.std(t_a, 0) / np.sqrt(n_runs),
@@ -749,57 +904,57 @@ def plot_basicstats(
             color="blue",
             edgecolor=None,
         )
-        axs2[i].set_yticks([0, 0.5, 1])
-        ticks = axs2[i].get_yticks()  # plt.yticks()
-        axs2[i].set_yticklabels((int(x) for x in ticks * 100))
-        axs2[i].set(xlabel="trial", ylabel="task-sel (%)")
-        axs2[i].legend(["1st task", "2nd task"], frameon=False)
+        axs2.set_yticks([0, 0.5, 1])
+        ticks = axs2.get_yticks()  # plt.yticks()
+        axs2.set_yticklabels((int(x) for x in ticks * 100))
+        axs2.set(xlabel="trial", ylabel="task-sel (%)")
+        axs2.legend(["1st task", "2nd task"], frameon=False)
         if "interleaved" not in m:
-            axs2[i].plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
-        axs2[i].set_title(m.split("_")[1])
+            axs2.plot([n_epochs / 2, n_epochs / 2], [0, 1], "k--", alpha=0.5)
+        axs2.set_title(m.split("_")[1])
         plt.gcf()
         sns.despine(f2)
-        axs2[i].set_ylim([0, 1.05])
+        axs2.set_ylim([0, 1.05])
         f2.tight_layout()
 
         # context corr
-        axs3[i].plot(np.arange(n_epochs), contextcorr.mean(0), color="k")
-        axs3[i].fill_between(
+        axs3.plot(np.arange(n_epochs), contextcorr.mean(0), color="k")
+        axs3.fill_between(
             np.arange(n_epochs),
             contextcorr.mean(0) - np.std(contextcorr, 0) / np.sqrt(n_runs),
             contextcorr.mean(0) + np.std(contextcorr, 0) / np.sqrt(n_runs),
             alpha=0.5,
-            color="magenta",
+            color="grey",
             edgecolor=None,
         )
 
-        axs3[i].set_ylim([-1.1, 1.05])
-        axs3[i].set(xlabel="trial", ylabel=r"$w_{context}$ corr ")
+        axs3.set_ylim([-1.1, 1.05])
+        axs3.set(xlabel="trial", ylabel=r"$w_{context}$ corr ")
         if "interleaved" not in m:
-            axs3[i].plot([n_epochs / 2, n_epochs / 2], [-1, 1], "k--", alpha=0.5)
-        axs3[i].set_title(m.split("_")[1])
+            axs3.plot([n_epochs / 2, n_epochs / 2], [-1, 1], "k--", alpha=0.5)
+        axs3.set_title(m.split("_")[1])
         sns.despine(f3)
         f3.tight_layout()
 
         # choice matrices
-        axs4[i, 0].imshow(cmats_a.mean(0))
-        axs4[i, 0].set_title("1st task")
-        axs4[i, 0].set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="irrel", ylabel="rel")
-        axs4[i, 1].imshow(cmats_b.mean(0))
-        axs4[i, 1].set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="rel", ylabel="irrel")
-        axs4[i, 1].set_title("2nd task")
-        # PCM = axs4[i, 1].get_children()[
-        #     -2
-        # ]  # get the mappable, the 1st and the 2nd are the x and y axes
 
-        # plt.subplots_adjust(bottom=0.1, right=0.8, top=0.9)
-        # cax = plt.axes([0.85, 0.1, 0.075, 0.8])
-        # plt.colorbar(PCM, cax=cax)
+        axs4[0].imshow(cmats_a.mean(0))
+        axs4[0].set_title("1st task")
+        axs4[0].set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="irrel", ylabel="rel")
+        axs4[1].imshow(cmats_b.mean(0))
+        axs4[1].set(xticks=[0, 2, 4], yticks=[0, 2, 4], xlabel="rel", ylabel="irrel")
+        axs4[1].set_title("2nd task")
+        axs4[0].set_xticks([])
+        axs4[0].set_yticks([])
+        axs4[1].set_xticks([])
+        axs4[1].set_yticks([])
+        plt.subplots_adjust(bottom=0.1, right=0.8, top=0.9)
 
     f1.tight_layout()
     f2.tight_layout()
     f3.tight_layout()
     f4.tight_layout()
+    f4.set_facecolor("w")
 
 
 def plot_sluggish_results(
@@ -1316,3 +1471,159 @@ def plot_mds(
     )
 
     plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=5)
+
+
+def biplot_dataset(ds: str = "blobs", ctx_scaling: int = 6):
+    """biplot of PCA performed on training dataset
+
+    Args:
+        ds (str, optional): dataset, can be "blobs" or "trees". Defaults to "blobs".
+        ctx_scaling (int, optional): context scaling. Defaults to 6
+    """
+    args = parser.parse_args(args=[])
+    args.n_episodes = 2
+    args.ctx_scaling = ctx_scaling
+    args.centering = True
+    args.ctx_avg = False
+    # biplot
+    n_components = 27
+    pca = PCA(n_components=n_components)
+    if ds == "blobs":
+        dataset = data.make_blobs_dataset(args)
+    elif ds == "trees":
+        dataset = data.make_trees_dataset(args)
+
+    pca.fit(dataset["x_train"])
+    # loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+    scores = dataset["x_train"] @ pca.components_.T
+    labels = [""] * (n_components - 2) + ["context1"] + ["context2"]
+    score = scores
+    coeff = pca.components_.T
+    pcax = 1
+    pcay = 2
+
+    plt.figure(figsize=(3, 3), dpi=300)
+
+    pca1 = pcax - 1
+    pca2 = pcay - 1
+    xs = score[:, pca1]
+    ys = score[:, pca2]
+    n = score.shape[1]
+    scalex = 1.0 / (xs.max() - xs.min())
+    scaley = 1.0 / (ys.max() - ys.min())
+    plt.scatter(xs * scalex, ys * scaley)
+    print(n)
+    for i in range(n):
+        plt.arrow(
+            0, 0, coeff[i, pca1], coeff[i, pca2], color="r", alpha=0.5, head_width=0.05
+        )
+        if labels is None:
+            plt.text(
+                coeff[i, pca1] * 1.15,
+                coeff[i, pca2] * 1.15,
+                "Var" + str(i + 1),
+                color="g",
+                ha="center",
+                va="center",
+            )
+        else:
+            plt.text(
+                coeff[i, pca1] * 1.15,
+                coeff[i, pca2] * 1.15,
+                labels[i],
+                color="g",
+                ha="center",
+                va="center",
+            )
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
+    plt.xticks(np.arange(-1, 1.1, 0.5))
+    plt.yticks(np.arange(-1, 1.1, 0.5))
+    plt.xlabel("PC{}".format(pcax))
+    plt.ylabel("PC{}".format(pcay))
+    # plt.grid()
+    sns.despine()
+    plt.title("Biplot")
+
+
+def plot_oja(
+    n_hidden: int = 1,
+    eta: float = 2e-1,
+    sigma: float = 1e-2,
+    n_episodes: int = 4,
+    ds: str = "blobs",
+):
+
+    args = parser.parse_args(args=[])
+    args.centering = True
+    args.ctx_avg = False
+    args.n_episodes = n_episodes
+    if n_hidden == 1:
+        eta = 4e-2
+        sigma = 1e-3
+        args.n_episodes = 1
+        args.ctx_scaling = 5
+    elif n_hidden == 100:
+        eta = 2e-1
+        sigma = 1e-2
+        n_hidden = 100
+        args.n_episodes = 4
+        args.ctx_scaling = 1
+
+    # n_trials = n_episodes * 50
+    if ds == "blobs":
+        dataset = data.make_blobs_dataset(args)
+    elif ds == "trees":
+        args.n_episodes += 1
+        dataset = data.make_trees_dataset(args)
+
+    if n_hidden > 1:
+        W = np.random.randn(2, n_hidden) * sigma
+        delta_ws = []
+        ws = []
+        delta_ws.append(0)
+        ws.append(deepcopy(W))
+        X = dataset["x_train"][:, -2:]
+        X[X[:, 0] > 0, 1] = 0
+
+        for x in X:
+            x_vec = np.tile(x[:, np.newaxis], n_hidden)
+            assert x_vec.T.shape == (n_hidden, 2)
+
+            y = W.T @ x
+
+            dW = eta * y * (x_vec - y * W)
+            W += dW
+            delta_ws.append(dW)
+            ws.append(W)
+    else:
+        w = np.random.randn(dataset["x_train"].shape[1]) * sigma
+        delta_ws = []
+        ws = []
+        delta_ws.append(0)
+        ws.append(deepcopy(w))
+        X = dataset["x_train"]
+        for x in X:
+            y = w.T @ x
+            dw = eta * y * (x - y * w.T)
+            w += dw
+            delta_ws.append(dw)
+            ws.append(deepcopy(w))
+
+    plt.figure(figsize=(3, 2.5), dpi=300)
+
+    a = plt.plot([wi[-1] for wi in ws], color="orange", linewidth=1)
+    b = plt.plot([wi[-2] for wi in ws], color="blue", linewidth=1)
+    plt.legend([a[0], b[0]], ["1st task", "2nd task"], frameon=False)
+
+    plt.title("Task weights, Oja", fontsize=8)
+    plt.xlabel("iter")
+    plt.ylabel("weight")
+
+    plt.ylabel("weight value (a.u.)")
+    ax = plt.gca()
+    for loc in ["top", "right"]:
+        ax.spines[loc].set_visible(False)
+    # plt.xlim([0,10])
+    plt.ylim(-1, 1)
+    plt.yticks(np.arange(-1, 1.1, 1))
