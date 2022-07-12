@@ -28,7 +28,7 @@ class HPOTuner(object):
         filepath: str = "/../datasets/",
         filesuffix: str = "_ds18",
         working_dir: str = "../ray_temp_env/",
-        log_dir: str = "./ray_logs/",
+        log_dir: str = "../ray_logs/",
     ):
         """hyperparameter optimisation for nnets
 
