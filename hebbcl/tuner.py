@@ -27,7 +27,8 @@ class HPOTuner(object):
         dataset: str = "blobs",
         filepath: str = "/../datasets/",
         filesuffix: str = "_ds18",
-        working_dir: str = "../ray_tune/",
+        working_dir: str = "../ray_temp_env/",
+        log_dir: str = "./ray_logs/",
     ):
         """hyperparameter optimisation for nnets
 
@@ -37,7 +38,7 @@ class HPOTuner(object):
             metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
             dataset (str, optional): which dataset to use. can be trees or blobs. Defaults to "blobs".
             filepath (str, optional): relative path to datasets. Defaults to "../datasets/".
-            working_dir (str, optional): relative path to working dir for ray environment. Defaults to "../ray_tune/"
+            working_dir (str, optional): relative path to working dir for ray environment. Defaults to "../ray_temp_env/"
         """
 
         self.metric = self._set_metric(metric)
@@ -62,7 +63,10 @@ class HPOTuner(object):
         ray.init(
             runtime_env={
                 "working_dir": working_dir,
-                "env_vars": {"TUNE_ORIG_WORKING_DIR": os.getcwd()},
+                "env_vars": {
+                    "TUNE_ORIG_WORKING_DIR": os.getcwd(),
+                    "TUNE_RESULT_DIR ": os.getcwd() + log_dir,
+                },
                 "py_modules": [utils, hebbcl],
             }
         )

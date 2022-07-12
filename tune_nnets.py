@@ -44,7 +44,8 @@ if __name__ == "__main__":
     #         metric="acc",
     #         dataset="blobs",
     #         filepath="/datasets/",
-    #         working_dir="ray_tune/",
+    #         working_dir="ray_temp_env/",
+    #         log_dir="ray_logs/",
     #     )
 
     #     tuner.tune(n_samples=3000, resources_per_trial={"cpu": 1, "gpu": 0})
@@ -73,7 +74,8 @@ if __name__ == "__main__":
     #         metric="acc",
     #         dataset="blobs",
     #         filepath="/datasets/",
-    #         working_dir="ray_tune/",
+    #         working_dir="ray_temp_env/",
+    #         log_dir="ray_logs/",
     #     )
 
     #     tuner.tune(n_samples=3000, resources_per_trial={"cpu": 1, "gpu": 0})
@@ -104,7 +106,8 @@ if __name__ == "__main__":
     #        metric="acc",
     #        dataset="trees",
     #        filepath="/datasets/",
-    #        working_dir="ray_tune/",
+    #        working_dir="ray_temp_env/",
+    #         log_dir="ray_logs/",
     #        filesuffix="_ds18",
     #    )
 
@@ -134,7 +137,8 @@ if __name__ == "__main__":
             metric="acc",
             dataset="trees",
             filepath="/datasets/",
-            working_dir="ray_tune/",
+            working_dir="ray_temp_env/",
+            log_dir="ray_logs/",
             filesuffix="_withgarden_ds24",
         )
 
