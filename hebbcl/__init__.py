@@ -1,1 +1,1 @@
-from . import logger, model, parameters # noqa F408
+from . import logger, model, parameters, trainer # noqa F408

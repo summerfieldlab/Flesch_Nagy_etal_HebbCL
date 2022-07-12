@@ -47,12 +47,6 @@ def set_hpo_args(
         argparse.Namespace: modified arguments
     """
 
-    args.n_episodes = 200
-    args.n_layers = 2
-    args.n_hidden = 100
-    args.n_features = 974
-    args.ctx_avg = False
-
     args.hpo_fixedseed = True
     args.hpo_scheduler = "bohb"
     args.hpo_searcher = "bohb"
@@ -61,28 +55,28 @@ def set_hpo_args(
         args.ctx_twice = False
         args.training_schedule = "interleaved"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "blocked_vanilla_1ctx":
         args.ctx_twice = False
         args.training_schedule = "blocked"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "interleaved_vanilla_2ctx":
         args.ctx_twice = True
         args.training_schedule = "interleaved"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "blocked_vanilla_2ctx":
         args.ctx_twice = True
         args.training_schedule = "blocked"
         args.perform_hebb = False
-        args.centering = True
+        args.centering = False
         args.gating = None
 
     elif whichmodel == "interleaved_ojactx_1ctx":
@@ -112,6 +106,21 @@ def set_hpo_args(
         args.perform_hebb = True
         args.centering = True
         args.gating = "oja_ctx"
+
+    elif whichmodel == "interleaved_ojaall_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "interleaved"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja"
+
+    elif whichmodel == "blocked_ojaall_1ctx":
+        args.ctx_twice = False
+        args.training_schedule = "blocked"
+        args.perform_hebb = True
+        args.centering = True
+        args.gating = "oja"
+
     else:
         raise ValueError("requested config not available")
     return args
