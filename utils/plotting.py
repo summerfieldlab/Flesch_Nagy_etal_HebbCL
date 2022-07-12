@@ -92,7 +92,7 @@ def disp_model_estimates(thetas: dict, cols: list = [[0.2, 0.2, 0.2], [0.6, 0.6,
         if param == "bias":
             ax.set_ylabel("angular bias (°)")
             ax.set_ylim((0, 20))
-            sigstar = helper_ttest(p_blocked, p_interleaved)
+            sigstar = helper_ttest(p_blocked, p_interleaved, param)
 
             plt.plot([0, 1], [20, 20], "k-", linewidth=1)
             plt.text(0.5, 20, sigstar, ha="center", fontsize=6)
@@ -1643,15 +1643,12 @@ def plot_modelcomparison_accuracy(
     slope_blocked: int = 14,
     slope_int: int = 14,
     n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
 ):
     pass
     # load slugglish sla int , collect accuracies
-    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
-    sluggishness = 0.1
     idx = np.where(sluggish_vals == sluggishness)[0][0]
-    slope_blocked = 14
     tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
-    slope_int = 14
     tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
     acc_int_oja = []
     for r in np.arange(0, n_runs):
@@ -1852,15 +1849,11 @@ def plot_modelcomparison_sigmoids(
     slope_blocked: int = 14,
     slope_int: int = 14,
     n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
 ) -> dict:
     # sigmoids
-    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
-
-    sluggishness = 0.1
     idx = np.where(sluggish_vals == sluggishness)[0][0]
-    slope_blocked = 14
     tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
-    slope_int = 14
     tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
 
     plt.figure(figsize=(4.8, 2.3), dpi=300)
@@ -2544,15 +2537,11 @@ def plot_modelcomparison_choicemats(
     slope_blocked: int = 14,
     slope_int: int = 14,
     n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
 ) -> dict:
     # sigmoids
-    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
-
-    sluggishness = 0.1
     idx = np.where(sluggish_vals == sluggishness)[0][0]
-    slope_blocked = 14
     tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
-    slope_int = 14
     tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[slope_int]
 
     cmats = loadmat("../datasets/choicemats_exp1a.mat", matlab_compatible=True)
@@ -2886,7 +2875,21 @@ def plot_modelcomparison_choicemats(
     return {"human": cmats_human, "baseline": cmats_baseline, "emahebb": cmats_emasla}
 
 
-def plot_modelcomparison_choicemodel():
+def plot_modelcomparison_choicemodel(
+    baseline_models: List[str] = [
+        "baseline_interleaved_new_select",
+        "baseline_blocked_new_select",
+    ],
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.1,
+    slope_blocked: int = 14,
+    slope_int: int = 14,
+    n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+):
 
     try:
         with open("../results/thetas_est.pkl", "rb") as f:
@@ -2902,18 +2905,16 @@ def plot_modelcomparison_choicemodel():
     except FileNotFoundError:
 
         # best fitting with oja slug models:
-        alpha = 0.1
-        idx = np.where(sluggish_vals == alpha)[0][0]
-        tempidx_blocked = 14
+        idx = np.where(sluggish_vals == sluggishness)[0][0]
+        tempidx_blocked = slope_blocked
         tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[tempidx_blocked]
-        tempidx_interleaved = 14
+        tempidx_interleaved = slope_int
         tempval_interleaved = np.logspace(np.log(0.1), np.log(4), 20)[
             tempidx_interleaved
         ]
-        n_runs = 20
 
         cmats = loadmat("../datasets/choicemats_exp1a.mat")
-        cmats.keys()
+
         choicemats_humans = {
             "blocked": {
                 "task_a": cmats["cmat_b_south"],
@@ -2936,13 +2937,14 @@ def plot_modelcomparison_choicemodel():
         }
 
         # baseline --------------------------------
-        n_runs = 20
 
         cmats_a = []
         cmats_b = []
         for r in np.arange(0, n_runs):
             with open(
-                "../checkpoints/baseline_blocked_new_select/run_"
+                "../checkpoints/"
+                + baseline_models[1]
+                + "/run_"
                 + str(r)
                 + "/results.pkl",
                 "rb",
@@ -2962,7 +2964,9 @@ def plot_modelcomparison_choicemodel():
         cmats_b = []
         for r in np.arange(0, n_runs):
             with open(
-                "../checkpoints/baseline_interleaved_new_select/run_"
+                "../checkpoints/"
+                + baseline_models[0]
+                + "/run_"
                 + str(r)
                 + "/results.pkl",
                 "rb",
@@ -2979,14 +2983,14 @@ def plot_modelcomparison_choicemodel():
         choicemats_baseline["interleaved"]["task_a"] = np.array(cmats_b)
 
         # oja ------------------------------------------
-        sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
-        # alpha = 0.2
-        # idx = np.where(alpha==sluggish_vals)[0][0]
+
         cmats_a = []
         cmats_b = []
         for r in np.arange(0, n_runs):
             with open(
-                "../checkpoints/oja_blocked_new_select_halfcenter/run_"
+                "../checkpoints/"
+                + hebb_models[1]
+                + "/run_"
                 + str(r)
                 + "/results.pkl",
                 "rb",
@@ -3007,7 +3011,8 @@ def plot_modelcomparison_choicemodel():
         cmats_b = []
         for r in np.arange(0, n_runs):
             with open(
-                "../checkpoints/sluggish_oja_int_select_sv"
+                "../checkpoints/"
+                + hebb_models[0]
                 + str(idx)
                 + "/run_"
                 + str(r)
@@ -3049,9 +3054,6 @@ def plot_modelcomparison_choicemodel():
             "baseline": thetas_baseline,
             "emahebb": thetas_oja,
         }
-
-        # with open('../results/thetas_est.pkl','rb') as f:
-        #     all_thetas = pickle.load(f)
 
         # all_thetas['emahebb'] = thetas_oja
         with open("../results/thetas_est.pkl", "wb") as f:
@@ -3109,7 +3111,7 @@ def plot_modelcomparison_congruency(cmats: dict):
     plt.figure(figsize=(3.2, 2.0), dpi=300)
     # make figure
     plt.subplot(1, 3, 1)
-    accs = loadmat("../datasets/accs_exp1a.mat")
+    # accs = loadmat("../datasets/accs_exp1a.mat")
     plt.bar(
         np.arange(2),
         [acc_congr_human["bloc"].mean(), acc_congr_human["int"].mean()],
