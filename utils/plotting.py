@@ -6,6 +6,7 @@ import matplotlib
 from matplotlib import cm, colors
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import statsmodels.api as sm
 import seaborn as sns
 from scipy.stats import ttest_ind
 from utils import choicemodel
@@ -2988,11 +2989,7 @@ def plot_modelcomparison_choicemodel(
         cmats_b = []
         for r in np.arange(0, n_runs):
             with open(
-                "../checkpoints/"
-                + hebb_models[1]
-                + "/run_"
-                + str(r)
-                + "/results.pkl",
+                "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl",
                 "rb",
             ) as f:
                 results = pickle.load(f)
@@ -3222,4 +3219,499 @@ def plot_modelcomparison_congruency(cmats: dict):
     plt.text(0.5, 0.5, sigstar, ha="center", fontsize=6)
 
     plt.suptitle("Congruency Effect", fontsize=6)
+    plt.tight_layout()
+
+
+def plot_modelcomparison_hiddenlayerRSA(
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.05,
+    n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+) -> dict:
+    idx = np.where(sluggish_vals == sluggishness)[0][0]
+    betas_blocked = []
+    betas_int = []
+    rdms, dmat = eval.gen_modelrdms(ctx_offset=1)
+
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl", "rb"
+        ) as f:
+            results = pickle.load(f)
+        y = zscore(
+            squareform(pdist(results["all_y_hidden"][1, :, :]))[
+                np.tril_indices(50, k=-1)
+            ]
+        ).flatten()
+        lr = LinearRegression()
+        lr.fit(dmat, y)
+        betas_blocked.append(lr.coef_)
+    betas_blocked = np.asarray(betas_blocked)
+
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+        y = zscore(
+            squareform(pdist(results["all_y_hidden"][1, :, :]))[
+                np.tril_indices(50, k=-1)
+            ]
+        ).flatten()
+        lr = LinearRegression()
+        lr.fit(dmat, y)
+        betas_int.append(lr.coef_)
+    betas_int = np.asarray(betas_int)
+
+    f, axs = plt.subplots(1, 1, figsize=(2, 2), dpi=300)
+
+    b1 = axs.bar(
+        0 - 0.2,
+        betas_blocked[:, 0].mean(0),
+        yerr=np.std(betas_blocked[:, 0], 0) / np.sqrt(n_runs),
+        color=(39 / 255, 140 / 255, 145 / 255),
+        width=0.2,
+    )
+    b2 = axs.bar(
+        0,
+        betas_blocked[:, 1].mean(0),
+        yerr=np.std(betas_blocked[:, 1], 0) / np.sqrt(n_runs),
+        color=(34 / 255, 76 / 255, 128 / 255),
+        width=0.2,
+    )
+    b3 = axs.bar(
+        0 + 0.2,
+        betas_blocked[:, 2].mean(0),
+        yerr=np.std(betas_blocked[:, 2], 0) / np.sqrt(n_runs),
+        color=(159 / 255, 45 / 255, 235 / 255),
+        width=0.2,
+    )
+
+    b1 = axs.bar(
+        1 - 0.2,
+        betas_int[:, 0].mean(0),
+        yerr=np.std(betas_int[:, 0], 0) / np.sqrt(n_runs),
+        color=(39 / 255, 140 / 255, 145 / 255),
+        width=0.2,
+    )
+    b2 = axs.bar(
+        1,
+        betas_int[:, 1].mean(0),
+        yerr=np.std(betas_int[:, 1], 0) / np.sqrt(n_runs),
+        color=(34 / 255, 76 / 255, 128 / 255),
+        width=0.2,
+    )
+    b3 = axs.bar(
+        1 + 0.2,
+        betas_int[:, 2].mean(0),
+        yerr=np.std(betas_int[:, 2], 0) / np.sqrt(n_runs),
+        color=(159 / 255, 45 / 255, 235 / 255),
+        width=0.2,
+    )
+    axs.set_xticks((0, 1))
+    axs.set_yticks((0, 0.25, 0.5, 0.75, 1))
+    axs.set_xticklabels(("blocked", "interleaved"), rotation=0, fontsize=6)
+    axs.set_yticklabels([0, 0.25, 0.5, 0.75, 1], fontsize=6)
+    axs.set_title("Model RSA, Hidden Layer", fontsize=6)
+    axs.set_ylabel(r"$\beta$ estimate (a.u.)", fontsize=6)
+    axs.legend(
+        [b1, b2, b3], ["grid", "orthogonal", "diagonal"], fontsize=6, frameon=False
+    )
+
+    res = ttest_ind(betas_blocked[:, 0].ravel(), betas_blocked[:, 1].ravel())
+    z = res.statistic
+    print(f"blocked grid vs orth: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([-0.2, 0], [0.75, 0.75], "k-", linewidth=1)
+    plt.text(-0.1, 0.75, sigstar, ha="center", fontsize=6)
+
+    res = ttest_ind(betas_blocked[:, 1].ravel(), betas_blocked[:, 2].ravel())
+    z = res.statistic
+    print(f"blocked orth vs diag: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([0, 0.2], [0.7, 0.7], "k-", linewidth=1)
+    plt.text(0.1, 0.7, sigstar, ha="center", fontsize=6)
+
+    res = ttest_ind(betas_int[:, 0].ravel(), betas_int[:, 2].ravel())
+    z = res.statistic
+    print(f"int grid vs diag: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([0.8, 1.2], [0.94, 0.94], "k-", linewidth=1)
+    plt.text(1, 0.94, sigstar, ha="center", fontsize=6)
+
+    res = ttest_ind(betas_int[:, 1].ravel(), betas_int[:, 2].ravel())
+    z = res.statistic
+    print(f"int orth vs diag: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([1, 1.2], [0.88, 0.88], "k-", linewidth=1)
+    plt.text(1.1, 0.88, sigstar, ha="center", fontsize=6)
+
+    sns.despine()
+    plt.tight_layout()
+
+
+def plot_modelcomparison_taskselectivity(
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.05,
+    n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+):
+    idx = np.where(sluggish_vals == sluggishness)[0][0]
+    blocked_n_only_a = []
+    blocked_n_only_b = []
+    blocked_n_mixed = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl", "rb"
+        ) as f:
+            results = pickle.load(f)
+        blocked_n_only_a.append(results["n_only_a_regr"][-1])
+        blocked_n_only_b.append(results["n_only_b_regr"][-1])
+        blocked_n_mixed.append(100 - blocked_n_only_a[-1] - blocked_n_only_b[-1])
+
+    blocked_n_only_a = np.asarray(blocked_n_only_a)
+    blocked_n_only_b = np.asarray(blocked_n_only_b)
+    blocked_n_mixed = np.asarray(blocked_n_mixed)
+    print(f"blocked, task-specific: {blocked_n_only_a.mean()+blocked_n_only_b.mean()}")
+    print(f"blocked, task-agnostic: {blocked_n_mixed.mean()}")
+    int_n_only_a = []
+    int_n_only_b = []
+    int_n_mixed = []
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+        int_n_only_a.append(results["n_only_a_regr"][-1])
+        int_n_only_b.append(results["n_only_b_regr"][-1])
+        int_n_mixed.append(100 - int_n_only_a[-1] - int_n_only_b[-1])
+
+    int_n_only_a = np.asarray(int_n_only_a)
+    int_n_only_b = np.asarray(int_n_only_b)
+    int_n_mixed = np.asarray(int_n_mixed)
+    print(f"int, task-specific: {int_n_only_a.mean()+int_n_only_b.mean()}")
+    print(f"int, task-agnostic: {int_n_mixed.mean()}")
+    n_a = np.stack((blocked_n_only_a, int_n_only_a), axis=1)
+    n_b = np.stack((blocked_n_only_b, int_n_only_b), axis=1)
+    n_m = np.stack((blocked_n_mixed, int_n_mixed), axis=1)
+    f, ax = plt.subplots(figsize=(2, 2), dpi=300)
+    b1 = ax.bar(
+        ["blocked", "interleaved"],
+        n_a.mean(0),
+        yerr=np.std(n_a, 0, ddof=1) / np.sqrt(n_runs),
+        width=0.2,
+    )
+    b2 = ax.bar(
+        ["blocked", "interleaved"],
+        n_b.mean(0),
+        yerr=np.std(n_a, 0, ddof=1) / np.sqrt(n_runs),
+        bottom=n_a.mean(0),
+        width=0.2,
+    )
+    b3 = ax.bar(
+        ["blocked", "interleaved"],
+        n_m.mean(0),
+        yerr=np.std(n_a, 0, ddof=1) / np.sqrt(n_runs),
+        bottom=n_b.mean(0) + n_a.mean(0),
+        width=0.2,
+    )
+    ax.set_ylabel("hidden units (%)", fontsize=6)
+    ax.legend(
+        [b1, b2, b3],
+        ["1st task, rel. dim.", "2nd task, rel. dim.", "task agnostic"],
+        fontsize=6,
+        frameon=False,
+    )
+    ax.set_title("Hidden Unit Selectivity", fontsize=6)
+    sns.despine()
+
+    for item in (
+        [ax.title, ax.xaxis.label, ax.yaxis.label]
+        + ax.get_xticklabels()
+        + ax.get_yticklabels()
+        + ax.get_legend().get_texts()
+    ):
+        item.set_fontsize(6)
+
+
+def plot_modelcomparison_readout(
+    ds: str = "blobs",
+    ctx_scaling: int = 1,
+    hebb_models: List[str] = [
+        "sluggish_oja_int_select_sv",
+        "oja_blocked_new_select_halfcenter",
+    ],
+    sluggishness: float = 0.05,
+    n_runs: int = 20,
+    sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+):
+
+    idx = np.where(sluggishness == sluggish_vals)[0][0]
+
+    args = parser.parse_args(args=[])
+    args.n_episodes = 2
+    args.ctx_scaling = ctx_scaling
+    args.centering = True
+    args.ctx_avg = False
+    if ds == "blobs":
+        dataset = data.make_blobs_dataset(args)
+    elif ds == "trees":
+        dataset = data.make_trees_dataset(args)
+
+    dmat = eval.make_dmat(dataset["f_all"])
+
+    readout_magnitude = np.empty((50, 3))
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+
+        yh = results["all_y_hidden"][1, :, :]
+        selectivity_matrix = np.zeros((100, 6))
+        for i_neuron in range(100):
+            y_neuron = yh[:, i_neuron]
+            lr = sm.OLS(zscore(y_neuron), dmat)
+            regr_results = lr.fit()
+            # if only a single regressor is significant, store that neuron's selectivity
+            if np.sum(regr_results.tvalues > 1.96) == 1:
+                selectivity_matrix[
+                    i_neuron,
+                    np.where(regr_results.tvalues == np.max(regr_results.tvalues))[0][
+                        0
+                    ],
+                ] = 1
+        i_task_a = (
+            (selectivity_matrix[:, 0] == 0)
+            & (selectivity_matrix[:, 1] == 1)
+            & (selectivity_matrix[:, 2] == 0)
+            & (selectivity_matrix[:, 3] == 0)
+        )
+        i_task_b = (
+            (selectivity_matrix[:, 0] == 0)
+            & (selectivity_matrix[:, 1] == 0)
+            & (selectivity_matrix[:, 2] == 1)
+            & (selectivity_matrix[:, 3] == 0)
+        )
+
+        with open(
+            "../checkpoints/"
+            + hebb_models[0]
+            + str(idx)
+            + "/run_"
+            + str(r)
+            + "/model.pkl",
+            "rb",
+        ) as f:
+            model = pickle.load(f)
+        wo = model.W_o.cpu().detach().numpy()
+
+        readout_magnitude[r, 0] = (
+            np.abs(wo[i_task_a]).mean() if sum(i_task_a) != 0 else 0
+        )
+        readout_magnitude[r, 1] = (
+            np.abs(wo[i_task_b]).mean() if sum(i_task_b) != 0 else 0
+        )
+        readout_magnitude[r, 2] = np.abs(
+            wo[~((i_task_a is True) | (i_task_b is True))]
+        ).mean()
+    readout_magnitude_int = readout_magnitude
+
+    readout_magnitude = np.empty((50, 3))
+    for r in np.arange(0, n_runs):
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl",
+            "rb",
+        ) as f:
+            results = pickle.load(f)
+
+        yh = results["all_y_hidden"][1, :, :]
+        selectivity_matrix = np.zeros((100, 6))
+        for i_neuron in range(100):
+            y_neuron = yh[:, i_neuron]
+            lr = sm.OLS(zscore(y_neuron), dmat)
+            regr_results = lr.fit()
+            # if only a single regressor is significant, store that neuron's selectivity
+            if np.sum(regr_results.tvalues > 1.96) == 1:
+                selectivity_matrix[
+                    i_neuron,
+                    np.where(regr_results.tvalues == np.max(regr_results.tvalues))[0][
+                        0
+                    ],
+                ] = 1
+        i_task_a = (
+            (selectivity_matrix[:, 0] == 0)
+            & (selectivity_matrix[:, 1] == 1)
+            & (selectivity_matrix[:, 2] == 0)
+            & (selectivity_matrix[:, 3] == 0)
+        )
+        i_task_b = (
+            (selectivity_matrix[:, 0] == 0)
+            & (selectivity_matrix[:, 1] == 0)
+            & (selectivity_matrix[:, 2] == 1)
+            & (selectivity_matrix[:, 3] == 0)
+        )
+
+        with open(
+            "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/model.pkl", "rb"
+        ) as f:
+            model = pickle.load(f)
+
+        wo = model.W_o.cpu().detach().numpy()
+
+        readout_magnitude[r, 0] = (
+            np.abs(wo[i_task_a]).mean() if sum(i_task_a) != 0 else 0
+        )
+        readout_magnitude[r, 1] = (
+            np.abs(wo[i_task_b]).mean() if sum(i_task_b) != 0 else 0
+        )
+        readout_magnitude[r, 2] = np.abs(
+            wo[~((i_task_a is True) | (i_task_b is True))]
+        ).mean()
+
+    readout_magnitude_blocked = readout_magnitude
+
+    f, axs = plt.subplots(1, 1, figsize=(2, 2), dpi=300)
+
+    b1 = axs.bar(
+        0 - 0.2,
+        readout_magnitude_blocked[:, 0].mean(0),
+        yerr=np.std(readout_magnitude_blocked[:, 0], 0) / np.sqrt(50),
+        color=(39 / 255, 140 / 255, 145 / 255),
+        width=0.2,
+    )
+    b2 = axs.bar(
+        0,
+        readout_magnitude_blocked[:, 1].mean(0),
+        yerr=np.std(readout_magnitude_blocked[:, 1], 0) / np.sqrt(50),
+        color=(34 / 255, 76 / 255, 128 / 255),
+        width=0.2,
+    )
+    b3 = axs.bar(
+        0 + 0.2,
+        readout_magnitude_blocked[:, 2].mean(0),
+        yerr=np.std(readout_magnitude_blocked[:, 2], 0) / np.sqrt(50),
+        color=(159 / 255, 45 / 255, 235 / 255),
+        width=0.2,
+    )
+
+    b1 = axs.bar(
+        1 - 0.2,
+        readout_magnitude_int[:, 0].mean(0),
+        yerr=np.std(readout_magnitude_int[:, 0], 0) / np.sqrt(20),
+        color=(39 / 255, 140 / 255, 145 / 255),
+        width=0.2,
+    )
+    b2 = axs.bar(
+        1,
+        readout_magnitude_int[:, 1].mean(0),
+        yerr=np.std(readout_magnitude_int[:, 1], 0) / np.sqrt(20),
+        color=(34 / 255, 76 / 255, 128 / 255),
+        width=0.2,
+    )
+    b3 = axs.bar(
+        1 + 0.2,
+        readout_magnitude_int[:, 2].mean(0),
+        yerr=np.std(readout_magnitude_int[:, 2], 0) / np.sqrt(20),
+        color=(159 / 255, 45 / 255, 235 / 255),
+        width=0.2,
+    )
+    axs.set_xticks((0, 1))
+    axs.set_xticklabels(("blocked", "interleaved"), rotation=0, fontsize=6)
+    # ticks = np.round(axs.get_yticks(),2)
+    # axs.set_yticklabels(ticks,fontsize=6)
+    plt.yticks(fontsize=6)
+    axs.set_title("Readout Weights", fontsize=6)
+    axs.set_ylabel(r"weight magnitude (a.u.)", fontsize=6)
+    axs.legend(
+        [b1, b2, b3],
+        ["1st task", "2nd task", "task agnostic"],
+        fontsize=6,
+        frameon=False,
+    )
+
+    res = ttest_ind(
+        readout_magnitude_int[:, 0].ravel(), readout_magnitude_int[:, 2].ravel()
+    )
+    z = res.statistic
+    print(f"int 1st vs agnostic: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([0.8, 1.2], [0.22, 0.22], "k-", linewidth=1)
+    plt.text(1, 0.22, sigstar, ha="center", fontsize=6)
+
+    res = ttest_ind(
+        readout_magnitude_int[:, 1].ravel(), readout_magnitude_int[:, 2].ravel()
+    )
+    z = res.statistic
+    print(f"int 2nd vs agnostic: t={z:.2f}, p={res.pvalue:.4f}")
+    if res.pvalue >= 0.05:
+        sigstar = "n.s."
+    elif res.pvalue < 0.001:
+        sigstar = "*" * 3
+    elif res.pvalue < 0.01:
+        sigstar = "*" * 2
+    elif res.pvalue < 0.05:
+        sigstar = "*"
+    plt.plot([1, 1.2], [0.19, 0.19], "k-", linewidth=1)
+    plt.text(1.1, 0.19, sigstar, ha="center", fontsize=6)
+    sns.despine()
     plt.tight_layout()
