@@ -5,7 +5,7 @@ import numpy as np
 from utils.data import make_blobs_dataset
 from utils.nnet import get_device
 
-from hebbcl.logger import MetricLogger
+from hebbcl.logger import MetricLogger1Hidden
 from hebbcl.model import Nnet
 from hebbcl.trainer import Optimiser, train_on_blobs
 from hebbcl.parameters import parser
@@ -30,7 +30,7 @@ def execute_run(i_run):
     dataset = make_blobs_dataset(args)
 
     # instantiate logger, model and optimiser
-    logger = MetricLogger(save_dir)
+    logger = MetricLogger1Hidden(save_dir)
     model = Nnet(args)
     optim = Optimiser(args)
 
@@ -50,7 +50,6 @@ if __name__ == "__main__":
 
     # BASELINE NETWORK -------------------------------------------------
     args.cuda = False
-    args.n_episodes = 8
     args.ctx_scaling = 5
     args.lrate_sgd = 0.2
     args.lrate_hebb = 0.0093
@@ -58,17 +57,17 @@ if __name__ == "__main__":
     args.save_results = True
     args.gating = "None"
     args.perform_hebb = False
-    args.centering = True
+    args.centering = False
     args.verbose = False
     args.ctx_avg = True
     args.ctx_avg_type = "ema"
     args.training_schedule = "interleaved"
     args.n_runs = 50
-
-    sluggish_vals = np.linspace(0.05, 1, 30)
+    
+    sluggish_vals = np.linspace(0.05, 1, 20)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_baseline_int_8episodes_sv" + str(ii)
+        args.save_dir = "sluggish_baseline_int_select_sv" + str(ii)
         Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )

@@ -29,7 +29,7 @@ class HPOTuner(object):
         """hyperparameter optimisation for nnets
 
         Args:
-            args (ArgumentParser): collection of neural network training parameters
+            args (Namespace): collection of neural network training parameters
             time_budget (int, optional): time budget allocated to the fitting process (in seconds). Defaults to 100.
             metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
             dataset (str, optional): which dataset to use. can be trees or blobs. Defaults to "blobs".

@@ -8,11 +8,11 @@ from typing import Dict
 class Optimiser:
     """custom optimiser for SGD + Hebbian training updates"""
 
-    def __init__(self, args: argparse.ArgumentParser):
+    def __init__(self, args: argparse.Namespace):
         """Constructor for optimiser
 
         Args:
-            args (argparse.ArgumentParser): training params specified in parameters.py
+            args (argparse.Namespace): training params specified in parameters.py
         """
         self.lrate_sgd = args.lrate_sgd
         self.lrate_hebb = args.lrate_hebb
@@ -229,7 +229,7 @@ class Optimiser:
 
 
 def train_on_blobs(
-    args: argparse.ArgumentParser,
+    args: argparse.Namespace,
     model: torch.nn.Module,
     optim: Optimiser,
     data: Dict[str, np.array],
@@ -238,7 +238,7 @@ def train_on_blobs(
     """trains a neural network on blobs task
 
     Args:
-        args (argparse.ArgumentParser): training parameters
+        args (argparse.Namespace): training parameters
         model (torch.nn.Module): feed forward neural network
         optim (Optimiser): optimiser that performs the training procedure
         data (Dict[str, np.array]): dictionary with training data
@@ -302,7 +302,7 @@ def train_on_blobs(
 
 
 def train_on_trees(
-    args: argparse.ArgumentParser,
+    args: argparse.Namespace,
     model: torch.nn.Module,
     optim: Optimiser,
     data: Dict[str, np.array],
@@ -311,7 +311,7 @@ def train_on_trees(
     """trains a neural network on trees task
 
     Args:
-        args (argparse.ArgumentParser): training parameters
+        args (argparse.Namespace): training parameters
         model (torch.nn.Module): feed forward neural network
         optim (Optimiser): optimiser that performs the training procedure
         data (Dict[str, np.array]): dictionary with training data
