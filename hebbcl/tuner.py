@@ -38,7 +38,8 @@ class HPOTuner(object):
             metric (str, optional): metric to optimise, can be "acc" or "loss". Defaults to "loss".
             dataset (str, optional): which dataset to use. can be trees or blobs. Defaults to "blobs".
             filepath (str, optional): relative path to datasets. Defaults to "../datasets/".
-            working_dir (str, optional): relative path to working dir for ray environment. Defaults to "../ray_temp_env/"
+            working_dir (str, optional): relative path to working dir for ray environment.
+             Defaults to "../ray_temp_env/"
         """
 
         self.metric = self._set_metric(metric)
