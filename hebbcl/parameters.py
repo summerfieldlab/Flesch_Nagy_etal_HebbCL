@@ -55,7 +55,7 @@ def set_hpo_args(
         args.ctx_twice = False
         args.training_schedule = "interleaved"
         args.perform_hebb = False
-        args.centering = False
+        args.centering = True
         args.gating = None
 
     elif whichmodel == "blocked_vanilla_1ctx":
