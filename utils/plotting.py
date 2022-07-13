@@ -1422,6 +1422,7 @@ def plot_mds(
     layer: str = "all_y_hidden",
     n_runs: int = 50,
     resultsdir: str = "../results/",
+    axlims: int = 5,
 ):
     """visualises hidden layer activity with MDS projection into 3 dim
 
@@ -1432,6 +1433,7 @@ def plot_mds(
         layer (str, optional). which layer to plot. Defaults to all_y_hidden.
         n_runs (int, optional): number of training runs. Defaults to 50.
         resultsdir (str, optional): location of training runs. Defaults to "../results/".
+        axlims (int, optional): axis limits. Defaults to 5.
     """
 
     # check whether mds results already exist:
@@ -1442,7 +1444,7 @@ def plot_mds(
         rdms = np.empty((n_runs, 50, 50))
         for r in range(n_runs):
             with open(
-                "checkpoints/" + filename_runs + "/run_" + str(r) + "/results.pkl",
+                "../checkpoints/" + filename_runs + "/run_" + str(r) + "/results.pkl",
                 "rb",
             ) as f:
                 results = pickle.load(f)
@@ -1472,7 +1474,7 @@ def plot_mds(
         2, figsize=(69 * mm, 33 * mm), dpi=300, facecolor="w", edgecolor="k"
     )
 
-    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=5)
+    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=axlims)
 
 
 def biplot_dataset(ds: str = "blobs", ctx_scaling: int = 6):
@@ -3723,132 +3725,300 @@ def plot_gridsearch_modelvalidation():
     tmp_i = mats[1].ravel()[:, np.newaxis]
     plt.subplot(1, 2, 1)
     plt.imshow(tmp_b.reshape(10, 5))
-    plt.title('blocked model')
+    plt.title("blocked model")
     plt.subplot(1, 2, 2)
     plt.imshow(tmp_i.reshape(10, 5))
-    plt.title('interleaved model')
+    plt.title("interleaved model")
 
     mses_b = choicemodel.gridsearch_modelparams(tmp_b, curriculum="blocked")
     plt.figure()
     plt.imshow(np.fliplr(np.array(mses_b).reshape(20, 20)))
-    plt.xlabel('sluggishness')
-    plt.ylabel('slope')
-    plt.title('blocked model')
+    plt.xlabel("sluggishness")
+    plt.ylabel("slope")
+    plt.title("blocked model")
     plt.colorbar()
     mses_i = choicemodel.gridsearch_modelparams(tmp_i, curriculum="interleaved")
     plt.figure()
     plt.imshow(np.fliplr(np.array(mses_i).reshape(20, 20)))
-    plt.xlabel('sluggishness')
-    plt.ylabel('slope')
-    plt.title('interleaved model')
+    plt.xlabel("sluggishness")
+    plt.ylabel("slope")
+    plt.title("interleaved model")
     plt.colorbar()
 
     plt.figure(figsize=(15, 5))
     plt.subplot(1, 2, 1)
-    plt.plot(np.array(mses_b).reshape(20, 20).mean(1), color='lightgreen', linestyle='-')
-    plt.plot(np.array(mses_i).reshape(20, 20).mean(1),color='orange', linestyle='-')
-    plt.scatter(np.where(np.array(mses_b).reshape(20,20).mean(1)==np.min(np.array(mses_b).reshape(20,20).mean(1)))[0][0],np.min(np.array(mses_b).reshape(20,20).mean(1)),marker='d',s=100,color='lightgreen')
-    plt.scatter(np.where(np.array(mses_i).reshape(20,20).mean(1)==np.min(np.array(mses_i).reshape(20,20).mean(1)))[0][0],np.min(np.array(mses_i).reshape(20,20).mean(1)),marker='d',s=100,color='orange')
-    plt.legend(('blocked','interleaved'))
-    plt.xlabel('slope')
-    plt.ylabel('mse')
-    plt.subplot(1,2,2)
-    plt.plot(np.flip(np.array(mses_b).reshape(20,20).mean(0)),color='lightgreen',linestyle='-')
-    plt.plot(np.flip(np.array(mses_i).reshape(20,20).mean(0)),color='orange',linestyle='-')
-    plt.scatter(np.where(np.flip(np.array(mses_b).reshape(20,20).mean(0))==np.min(np.flip(np.array(mses_b).reshape(20,20).mean(0))))[0][0],np.min(np.flip(np.array(mses_b).reshape(20,20).mean(0))),marker='d',s=100,color='lightgreen')
-    plt.scatter(np.where(np.flip(np.array(mses_i).reshape(20,20).mean(0))==np.min(np.flip(np.array(mses_i).reshape(20,20).mean(0))))[0][0],np.min(np.flip(np.array(mses_i).reshape(20,20).mean(0))),marker='d',s=100,color='orange')
-    plt.legend(('blocked','interleaved'))
-    plt.xlabel('sluggishness')
-    plt.ylabel('mse')
+    plt.plot(
+        np.array(mses_b).reshape(20, 20).mean(1), color="lightgreen", linestyle="-"
+    )
+    plt.plot(np.array(mses_i).reshape(20, 20).mean(1), color="orange", linestyle="-")
+    plt.scatter(
+        np.where(
+            np.array(mses_b).reshape(20, 20).mean(1)
+            == np.min(np.array(mses_b).reshape(20, 20).mean(1))
+        )[0][0],
+        np.min(np.array(mses_b).reshape(20, 20).mean(1)),
+        marker="d",
+        s=100,
+        color="lightgreen",
+    )
+    plt.scatter(
+        np.where(
+            np.array(mses_i).reshape(20, 20).mean(1)
+            == np.min(np.array(mses_i).reshape(20, 20).mean(1))
+        )[0][0],
+        np.min(np.array(mses_i).reshape(20, 20).mean(1)),
+        marker="d",
+        s=100,
+        color="orange",
+    )
+    plt.legend(("blocked", "interleaved"))
+    plt.xlabel("slope")
+    plt.ylabel("mse")
+    plt.subplot(1, 2, 2)
+    plt.plot(
+        np.flip(np.array(mses_b).reshape(20, 20).mean(0)),
+        color="lightgreen",
+        linestyle="-",
+    )
+    plt.plot(
+        np.flip(np.array(mses_i).reshape(20, 20).mean(0)), color="orange", linestyle="-"
+    )
+    plt.scatter(
+        np.where(
+            np.flip(np.array(mses_b).reshape(20, 20).mean(0))
+            == np.min(np.flip(np.array(mses_b).reshape(20, 20).mean(0)))
+        )[0][0],
+        np.min(np.flip(np.array(mses_b).reshape(20, 20).mean(0))),
+        marker="d",
+        s=100,
+        color="lightgreen",
+    )
+    plt.scatter(
+        np.where(
+            np.flip(np.array(mses_i).reshape(20, 20).mean(0))
+            == np.min(np.flip(np.array(mses_i).reshape(20, 20).mean(0)))
+        )[0][0],
+        np.min(np.flip(np.array(mses_i).reshape(20, 20).mean(0))),
+        marker="d",
+        s=100,
+        color="orange",
+    )
+    plt.legend(("blocked", "interleaved"))
+    plt.xlabel("sluggishness")
+    plt.ylabel("mse")
 
 
 def plot_gridsearch_singlesubjects():
     # grid search at single subject level
     gs_results = choicemodel.wrapper_gridsearch_modelparams()
     plt.figure()
-    plt.imshow(np.fliplr(gs_results['cmat_b'].reshape(-1,20,20).mean(0)))
-    plt.xlabel('sluggishness')
-    plt.ylabel('slope')
-    plt.title('single subject lvl, blocked')
+    plt.imshow(np.fliplr(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0)))
+    plt.xlabel("sluggishness")
+    plt.ylabel("slope")
+    plt.title("single subject lvl, blocked")
     plt.colorbar()
 
     plt.figure()
-    plt.imshow(np.fliplr(gs_results['cmat_i'].reshape(-1,20,20).mean(0)))
-    plt.xlabel('sluggishness')
-    plt.ylabel('slope')
-    plt.title('single subject lvl, interleaved')
+    plt.imshow(np.fliplr(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0)))
+    plt.xlabel("sluggishness")
+    plt.ylabel("slope")
+    plt.title("single subject lvl, interleaved")
     plt.colorbar()
 
     # averages
-    plt.figure(figsize=(10,5))
-    plt.subplot(1,2,1)
-    plt.plot(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1),color='lightgreen',linestyle='-')
-    plt.plot(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1),color='orange',linestyle='-')
-    plt.scatter(np.where(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1)==np.min(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1)))[0][0],np.min(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1)),marker='d',s=100,color='lightgreen')
-    plt.scatter(np.where(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1)==np.min(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1)))[0][0],np.min(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1)),marker='d',s=100,color='orange')
-    plt.title('sigmoid slope')
-    plt.xlabel('param val')
-    plt.ylabel('mse')
-    plt.legend(('blocked','interleaved'))
-    plt.subplot(1,2,2)
-    plt.plot(np.flip(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0)),color='lightgreen',linestyle='-')
-    plt.plot(np.flip(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0)),color='orange',linestyle='-')
-    plt.scatter(np.where(np.flip(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))==np.min(np.flip(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))))[0][0],np.min(np.flip(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))),marker='d',s=100,color='lightgreen')
-    plt.scatter(np.where(np.flip(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))==np.min(np.flip(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))))[0][0],np.min(np.flip(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))),marker='d',s=100,color='orange')
-    plt.title('sluggishness')
-    plt.xlabel('param val')
-    plt.ylabel('mse')
-    plt.legend(('blocked','interleaved'))
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(
+        gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1),
+        color="lightgreen",
+        linestyle="-",
+    )
+    plt.plot(
+        gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1),
+        color="orange",
+        linestyle="-",
+    )
+    plt.scatter(
+        np.where(
+            gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)
+            == np.min(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1))
+        )[0][0],
+        np.min(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)),
+        marker="d",
+        s=100,
+        color="lightgreen",
+    )
+    plt.scatter(
+        np.where(
+            gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)
+            == np.min(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1))
+        )[0][0],
+        np.min(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)),
+        marker="d",
+        s=100,
+        color="orange",
+    )
+    plt.title("sigmoid slope")
+    plt.xlabel("param val")
+    plt.ylabel("mse")
+    plt.legend(("blocked", "interleaved"))
+    plt.subplot(1, 2, 2)
+    plt.plot(
+        np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0)),
+        color="lightgreen",
+        linestyle="-",
+    )
+    plt.plot(
+        np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0)),
+        color="orange",
+        linestyle="-",
+    )
+    plt.scatter(
+        np.where(
+            np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))
+            == np.min(np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0)))
+        )[0][0],
+        np.min(np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))),
+        marker="d",
+        s=100,
+        color="lightgreen",
+    )
+    plt.scatter(
+        np.where(
+            np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))
+            == np.min(np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0)))
+        )[0][0],
+        np.min(np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))),
+        marker="d",
+        s=100,
+        color="orange",
+    )
+    plt.title("sluggishness")
+    plt.xlabel("param val")
+    plt.ylabel("mse")
+    plt.legend(("blocked", "interleaved"))
     plt.tight_layout()
 
-    print(f"estimated sluggishness (idx), interleaved: {np.argmin(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))}")
-    print(f"estimated sluggishness (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))}")
-    print(f"estimated slope (idx), interleaved: {np.argmin(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1))}")
-    print(f"estimated slope (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1))}")
+    print(
+        f"estimated sluggishness (idx), interleaved:"
+        f"{np.argmin(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))}"
+    )
+    print(
+        f"estimated sluggishness (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))}"
+    )
+    print(
+        f"estimated slope (idx), interleaved: {np.argmin(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1))}"
+    )
+    print(
+        f"estimated slope (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1))}"
+    )
     # np.logspace(np.log(0.1), np.log(4), 20)[12]
 
 
 def plot_gridsearch_group():
-    # grid search at group level 
+    # grid search at group level
     gs_m_results = choicemodel.wrapper_gridsearch_modelparams(single_subs=False)
     plt.figure()
-    plt.imshow(np.fliplr(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0)))
-    plt.xlabel('sluggishness')
-    plt.ylabel('slope')
-    plt.title('single subject lvl, blocked')
+    plt.imshow(np.fliplr(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0)))
+    plt.xlabel("sluggishness")
+    plt.ylabel("slope")
+    plt.title("single subject lvl, blocked")
     plt.colorbar()
 
     plt.figure()
-    plt.imshow(np.fliplr(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0)))
-    plt.xlabel('sluggishness')
-    plt.ylabel('slope')
-    plt.title('single subject lvl, interleaved')
+    plt.imshow(np.fliplr(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0)))
+    plt.xlabel("sluggishness")
+    plt.ylabel("slope")
+    plt.title("single subject lvl, interleaved")
     plt.colorbar()
 
-
     # averages
-    plt.figure(figsize=(10,5))
-    plt.subplot(1,2,1)
-    plt.plot(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1),color='lightgreen',linestyle='-')
-    plt.plot(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1),color='orange',linestyle='-')
-    plt.scatter(np.where(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1)==np.min(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1)))[0][0],np.min(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1)),marker='d',s=100,color='lightgreen')
-    plt.scatter(np.where(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1)==np.min(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1)))[0][0],np.min(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1)),marker='d',s=100,color='orange')
-    plt.title('sigmoid slope')
-    plt.xlabel('param val')
-    plt.ylabel('mse')
-    plt.legend(('blocked','interleaved'))
-    plt.subplot(1,2,2)
-    plt.plot(np.flip(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0)),color='lightgreen',linestyle='-')
-    plt.plot(np.flip(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0)),color='orange',linestyle='-')
-    plt.scatter(np.where(np.flip(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))==np.min(np.flip(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))))[0][0],np.min(np.flip(gs_m_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))),marker='d',s=100,color='lightgreen')
-    plt.scatter(np.where(np.flip(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))==np.min(np.flip(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))))[0][0],np.min(np.flip(gs_m_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))),marker='d',s=100,color='orange')
-    plt.title('sluggishness')
-    plt.xlabel('param val')
-    plt.ylabel('mse')
-    plt.legend(('blocked','interleaved'))
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(
+        gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1),
+        color="lightgreen",
+        linestyle="-",
+    )
+    plt.plot(
+        gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1),
+        color="orange",
+        linestyle="-",
+    )
+    plt.scatter(
+        np.where(
+            gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)
+            == np.min(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1))
+        )[0][0],
+        np.min(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)),
+        marker="d",
+        s=100,
+        color="lightgreen",
+    )
+    plt.scatter(
+        np.where(
+            gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)
+            == np.min(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1))
+        )[0][0],
+        np.min(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)),
+        marker="d",
+        s=100,
+        color="orange",
+    )
+    plt.title("sigmoid slope")
+    plt.xlabel("param val")
+    plt.ylabel("mse")
+    plt.legend(("blocked", "interleaved"))
+    plt.subplot(1, 2, 2)
+    plt.plot(
+        np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0)),
+        color="lightgreen",
+        linestyle="-",
+    )
+    plt.plot(
+        np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0)),
+        color="orange",
+        linestyle="-",
+    )
+    plt.scatter(
+        np.where(
+            np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))
+            == np.min(
+                np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))
+            )
+        )[0][0],
+        np.min(np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))),
+        marker="d",
+        s=100,
+        color="lightgreen",
+    )
+    plt.scatter(
+        np.where(
+            np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))
+            == np.min(
+                np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))
+            )
+        )[0][0],
+        np.min(np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))),
+        marker="d",
+        s=100,
+        color="orange",
+    )
+    plt.title("sluggishness")
+    plt.xlabel("param val")
+    plt.ylabel("mse")
+    plt.legend(("blocked", "interleaved"))
     plt.tight_layout()
 
-    print(f"estimated sluggishness (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(20,20).mean(0))}")
-    print(f"estimated sluggishness (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(20,20).mean(0))}")
-    print(f"estimated slope (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(20,20).mean(1))}")
-    print(f"estimated slope (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(20,20).mean(1))}")
+    print(
+        f"estimated sluggishness (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(20,20).mean(0))}"
+    )
+    print(
+        f"estimated sluggishness (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(20,20).mean(0))}"
+    )
+    print(
+        f"estimated slope (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(20,20).mean(1))}"
+    )
+    print(
+        f"estimated slope (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(20,20).mean(1))}"
+    )
