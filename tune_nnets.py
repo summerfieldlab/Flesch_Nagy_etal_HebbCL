@@ -25,7 +25,6 @@ if __name__ == "__main__":
     # ]
 
     configs = [
-        "interleaved_ojaall_1ctx",
         "blocked_ojaall_1ctx",
     ]
     # 1 hidden layer on blobs (short): -----------------------
@@ -146,8 +145,39 @@ if __name__ == "__main__":
             filesuffix="_ds18",
         )
 
-        tuner.tune(n_samples=2000, resources_per_trial={"cpu": 2, "gpu": 0})
+        tuner.tune(n_samples=5000, resources_per_trial={"cpu": 2, "gpu": 0})
         save_tuner_results(tuner.results, args, filename="trees_asha_" + cfg)
 
         # validate best results
         validate_tuner_results(filename="trees_asha_" + cfg, datasuffix="_ds18", njobs=20)
+
+
+
+    for cfg in configs:
+        print(f"performing HPO for {cfg}")
+        args = parser.parse_args()
+        args.n_episodes = 100
+        args.n_layers = 2
+        args.n_hidden = 100
+        args.n_features = 18 * 18 * 3 + 2
+        args.ctx_avg = False
+        args = set_hpo_args(args, whichmodel=cfg)
+        args.hpo_scheduler = "asha"
+        args.hpo_searcher = None
+        # init tuner
+        tuner = HPOTuner(
+            args,
+            time_budget=60 * 120,
+            metric="loss",
+            dataset="trees",
+            filepath="/datasets/",
+            working_dir="ray_temp_env/",
+            log_dir="ray_logs/",
+            filesuffix="_ds18",
+        )
+
+        tuner.tune(n_samples=5000, resources_per_trial={"cpu": 2, "gpu": 0})
+        save_tuner_results(tuner.results, args, filename="trees_asha_" + cfg +"_optimloss")
+
+        # validate best results
+        validate_tuner_results(filename="trees_asha_" + cfg +"_optimloss", datasuffix="_ds18", njobs=20)
