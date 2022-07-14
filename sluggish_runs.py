@@ -48,40 +48,89 @@ def execute_run(i_run):
 
 if __name__ == "__main__":
 
-    # BASELINE NETWORK -------------------------------------------------
-    args.cuda = False
-    args.ctx_scaling = 5
-    args.lrate_sgd = 0.2
-    args.lrate_hebb = 0.0093
-    args.weight_init = 1e-2
-    args.save_results = True
-    args.gating = "None"
-    args.perform_hebb = False
-    args.centering = False
-    args.verbose = False
-    args.ctx_avg = True
-    args.ctx_avg_type = "ema"
-    args.training_schedule = "interleaved"
-    args.n_runs = 50
-    
-    sluggish_vals = np.linspace(0.05, 1, 20)
-    for ii, sv in enumerate(sluggish_vals):
-        args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_baseline_int_select_sv" + str(ii)
-        Parallel(n_jobs=-1, verbose=10)(
-            delayed(execute_run)(i_run) for i_run in range(args.n_runs)
-        )
+    # # BASELINE NETWORK -------------------------------------------------
+    # args.cuda = False
+    # args.ctx_scaling = 5
+    # args.lrate_sgd = 0.2
+    # args.lrate_hebb = 0.0093
+    # args.weight_init = 1e-2
+    # args.save_results = True
+    # args.gating = "None"
+    # args.perform_hebb = False
+    # args.centering = False
+    # args.verbose = False
+    # args.ctx_avg = True
+    # args.ctx_avg_type = "ema"
+    # args.training_schedule = "interleaved"
+    # args.n_runs = 50
 
-    # OJA NETWORK BLOCKED ---------------------------------------------
+    # sluggish_vals = np.linspace(0.05, 1, 20)
+    # for ii, sv in enumerate(sluggish_vals):
+    #     args.ctx_avg_alpha = sv
+    #     args.save_dir = "sluggish_baseline_int_select_sv" + str(ii)
+    #     Parallel(n_jobs=-1, verbose=10)(
+    #         delayed(execute_run)(i_run) for i_run in range(args.n_runs)
+    #     )
+
+    # # OJA CTX NETWORK BLOCKED ---------------------------------------------
+    # # overwrite standard parameters
+    # args.cuda = False
+    # args.ctx_scaling = 1
+    # args.lrate_sgd = 0.03
+    # args.lrate_hebb = 0.05
+    # args.weight_init = 1e-2
+    # args.save_results = True
+    # args.gating = "oja_ctx"
+    # args.centering = True
+    # args.verbose = False
+    # args.ctx_avg = True
+    # args.ctx_avg_type = "ema"
+    # args.training_schedule = "blocked"
+    # args.n_runs = 20
+
+    # sluggish_vals = np.linspace(0.05, 1, 20)
+    # for ii, sv in enumerate(sluggish_vals):
+    #     args.ctx_avg_alpha = sv
+    #     args.save_dir = "sluggish_oja_blocked_select_sv" + str(ii)
+    #     Parallel(n_jobs=6, verbose=10)(
+    #         delayed(execute_run)(i_run) for i_run in range(args.n_runs)
+    #     )
+
+    # # OJA CTX NETWORK INTERLEAVED -----------------------------------------
+    # # overwrite standard parameters
+    # args.cuda = False
+    # args.ctx_scaling = 1
+    # args.lrate_sgd = 0.03
+    # args.lrate_hebb = 0.05
+    # args.weight_init = 1e-2
+    # args.save_results = True
+    # args.gating = "oja_ctx"
+    # args.centering = True
+    # args.verbose = False
+    # args.ctx_avg = True
+    # args.ctx_avg_type = "ema"
+    # args.training_schedule = "interleaved"
+    # args.n_runs = 20
+
+    # sluggish_vals = np.linspace(0.05, 1, 20)
+    # for ii, sv in enumerate(sluggish_vals):
+    #     args.ctx_avg_alpha = sv
+    #     args.save_dir = "sluggish_oja_int_select_sv" + str(ii)
+    #     Parallel(n_jobs=6, verbose=10)(
+    #         delayed(execute_run)(i_run) for i_run in range(args.n_runs)
+    #     )
+
+    # REVISION: OJA NETWORK BLOCKED ---------------------------------------------
     # overwrite standard parameters
     args.cuda = False
     args.n_episodes = 8
     args.ctx_scaling = 3
-    args.lrate_sgd = 0.09207067771676251
-    args.lrate_hebb = 0.0039883754510576805
+    args.lrate_sgd = 0.09056499086887726
+    args.lrate_hebb = 0.002583861043525858
     args.weight_init = 1e-2
     args.save_results = True
-    args.gating = "oja_ctx"
+    args.perform_hebb = True
+    args.gating = "oja"
     args.centering = True
     args.verbose = False
     args.ctx_avg = True
@@ -92,21 +141,22 @@ if __name__ == "__main__":
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_oja_blocked_8episodes_sv" + str(ii)
+        args.save_dir = "blobs_revision_8episodes_sluggish_blocked_oja_sv" + str(ii)
         Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
 
-    # OJA NETWORK INTERLEAVED -----------------------------------------
+    # REVISION: OJA NETWORK INTERLEAVED -----------------------------------------
     # overwrite standard parameters
     args.cuda = False
     args.n_episodes = 8
-    args.ctx_scaling = 3
-    args.lrate_sgd = 0.08710014100174149
-    args.lrate_hebb = 0.005814333717889643
+    args.ctx_scaling = 4
+    args.lrate_sgd = 0.09263634569936459
+    args.lrate_hebb = 0.0003276905554752727
     args.weight_init = 1e-2
     args.save_results = True
-    args.gating = "oja_ctx"
+    args.perform_hebb = True
+    args.gating = "oja"
     args.centering = True
     args.verbose = False
     args.ctx_avg = True
@@ -117,7 +167,7 @@ if __name__ == "__main__":
     sluggish_vals = np.linspace(0.05, 1, 30)
     for ii, sv in enumerate(sluggish_vals):
         args.ctx_avg_alpha = sv
-        args.save_dir = "sluggish_oja_int_8episodes_sv" + str(ii)
+        args.save_dir = "blobs_revision_8episodes_sluggish_interleaved_oja_sv" + str(ii)
         Parallel(n_jobs=-1, verbose=10)(
             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
         )
