@@ -250,8 +250,8 @@ class HPOTuner(object):
             elif self.args.gating == "oja":
                 config = {
                     "lrate_sgd": tune.loguniform(1e-5, 1e-1),
-                    "lrate_hebb": tune.loguniform(1e-4, 1e-1),
-                    "ctx_scaling": tune.randint(2, 22),
+                    "lrate_hebb": tune.loguniform(1e-5, 1e-1),
+                    "ctx_scaling": tune.randint(2, 50),
                 }
             else:
                 raise NotImplementedError(
