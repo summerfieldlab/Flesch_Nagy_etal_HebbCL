@@ -351,7 +351,7 @@ def train_on_trees(
 
     # log state of initialised model
     logger.log_init(model)
-    logger.log_patterns(model, x_both)
+    logger.log_patterns(model, x_pattern)
 
     # loop over data and apply optimiser
     idces = np.arange(len(x_train))
