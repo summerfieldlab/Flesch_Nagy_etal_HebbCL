@@ -1,0 +1,83 @@
+#################### BLOBS ##########################################################
+# hps, 200 episodes: ----------------------------------------------------------------
+
+# interleaved ojaall
+training_schedule = "interleaved"
+ctx_avg = False
+centering = True
+ctx_scaling = 1
+n_episodes = 200
+perform_hebb = True
+gating = "oja"
+lrate_hebb = 0.000269741524659589
+lrate_sgd = 0.07638775393909703
+save_dir = "blobs_revision_200episodes_interleaved_oja"
+
+# blocked ojaall 
+training_schedule = "blocked"
+ctx_avg = False 
+centering = True
+ctx_scaling = 2
+n_episodes = 200
+perform_hebb = True
+gating = "oja"
+lrate_hebb = 0.00021666673995458582
+lrate_sgd = 0.03775369549108046
+save_dir = "blobs_revision_200episodes_blocked_oja"
+
+# hps, 8 episodes: -----------------------------------------------------------------
+# interleaved vanilla 8 episodes (ALREADY RAN THIS):
+training_schedule = "interleaved"
+ctx_avg = False
+centering = True
+ctx_scaling = 6
+n_episodes = 8
+perform_hebb = False
+lrate_sgd = 0.0981598358572433
+save_dir = "blobs_revision_8episodes_interleaved_vanilla"
+
+#blocked vanilla 8 episodes: 
+training_schedule = "blocked"
+ctx_avg = False
+centering = False
+ctx_scaling = 2
+n_episodes = 8
+perform_hebb = False
+lrate_sgd = 0.2
+save_dir = "blobs_revision_8episodes_blocked_vanilla"
+
+# interleaved ojaall 8 episodes: (ALREADY RAN THIS) TODO SLUGGISH WITH THESE SETTINGS
+training_schedule = "interleaved"
+ctx_avg = False
+centering = True
+ctx_scaling = 4
+n_episodes = 8
+perform_hebb = True
+gating="oja"
+lrate_hebb = 0.0003276905554752727
+lrate_sgd = 0.09263634569936459
+save_dir = "blobs_revision_8episodes_interleaved_oja"
+
+# blocked ojaall 8 episodes: (NOTE: ALREADY RAN THIS)
+training_schedule = "blocked"
+ctx_avg = False
+centering = True
+ctx_scaling = 3
+n_episodes = 8
+perform_hebb = True
+gating = "oja"
+lrate_hebb = 0.0025838610435258585
+lrate_sgd = 0.09056499086887726
+save_dir = "blobs_revision_8episodes_blocked_oja"
+
+
+#################### TREES ##########################################################
+# hps, 200 episodes: ----------------------------------------------------------------
+
+ # interleaved vanilla
+
+ # blocked vanilla 
+
+ # interleaved ojaall
+
+ # blocked ojaall
