@@ -503,8 +503,8 @@ def plot_results(
     plt.ylabel("norm")
     plt.plot([n_trials // 2, n_trials // 2], plt.ylim(), "k:")
     plt.subplot(2, 2, 3)
-    _ = plt.plot([wi[-1] for wi in ws], color="blue")
-    _ = plt.plot([wi[-2] for wi in ws], color="orange")
+    _ = plt.plot([wi[-1] for wi in ws], color=[0, 0, 128 / 255])
+    _ = plt.plot([wi[-2] for wi in ws], color=[255 / 255, 102 / 255, 0])
     plt.legend(["task a", "task b"])
     plt.title("context units")
     plt.xlabel("iter")
@@ -546,8 +546,8 @@ def plot_initsign_results(
     plt.ylabel("norm")
     plt.plot([n_trials // 2, n_trials // 2], plt.ylim(), "k:")
     plt.subplot(1, 3, 3)
-    _ = plt.plot([wi[-1] for wi in ws], color="blue")
-    _ = plt.plot([wi[-2] for wi in ws], color="orange")
+    _ = plt.plot([wi[-1] for wi in ws], color=[0, 0, 128 / 255])
+    _ = plt.plot([wi[-2] for wi in ws], color=[255 / 255, 102 / 255, 0])
     plt.legend(["task a", "task b"])
     plt.title("context weights")
     plt.xlabel("iter")
@@ -587,8 +587,8 @@ def plot_ghasla_results(
     plt.plot([n_trials // 2, n_trials // 2], plt.ylim(), "k:")
 
     plt.subplot(2, 3, 3)
-    a = plt.plot([wi[-2] for wi in ws], color="blue")
-    b = plt.plot([wi[-1] for wi in ws], color="orange")
+    a = plt.plot([wi[-2] for wi in ws], color=[0, 0, 128 / 255])
+    b = plt.plot([wi[-1] for wi in ws], color=[255 / 255, 102 / 255, 0])
     plt.legend([a[0], b[0]], ["task a", "task b"], frameon=False)
     plt.title("context to hidden weights", fontsize=8)
     plt.xlabel("iter")
@@ -610,8 +610,8 @@ def plot_ghasla_results(
         yb = np.maximum((data["x_test_b"] @ W), 0).mean(0)
         ta.append(np.mean((ya > 0) & (yb == 0)))
         tb.append(np.mean((ya == 0) & (yb > 0)))
-    plt.plot(ta, color="blue")
-    plt.plot(tb, color="orange")
+    plt.plot(ta, color=[0, 0, 128 / 255])
+    plt.plot(tb, color=[255 / 255, 102 / 255, 0])
     plt.title("proportion of task-specific units", fontsize=8)
     plt.yticks(
         ticks=np.arange(0, 1.1, 0.1),
@@ -653,6 +653,8 @@ def plot_basicstats(
     n_runs: int = 50,
     n_epochs: int = 200,
     models: list = ["baseline_interleaved_new_select", "baseline_blocked_new_select"],
+    fixtreesbug: bool = False,
+    
 ):
     """plots learning curves (acc, task selectivity, context corr) and choice mats
 
@@ -699,9 +701,16 @@ def plot_basicstats(
                     t_mixed[r, :] = 1 - t_a[r, :] - t_b[r, :] - t_d[r, :]
                     # context correlation:
                     contextcorr[r, :] = results["w_context_corr"]
-                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
-                        np.float64
-                    )
+                    # outputs:
+
+                    if fixtreesbug:
+                        cc = np.clip(results["all_y_out"][1][:,], -709.78, 709.78).astype(
+                            np.float64
+                        )
+                    else:
+                        cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                            np.float64
+                        )
                     choices = 1 / (1 + np.exp(-cc))
                     cmats_a.append(choices[:25].reshape(5, 5))
                     cmats_b.append(choices[25:].reshape(5, 5))
@@ -710,22 +719,24 @@ def plot_basicstats(
             cmats_b = np.array(cmats_b)
 
             # accuracy
-            axs1[i].plot(np.arange(n_epochs), acc_1st.mean(0), color="orange")
+            axs1[i].plot(
+                np.arange(n_epochs), acc_1st.mean(0), color=[255 / 255, 102 / 255, 0]
+            )
             axs1[i].fill_between(
                 np.arange(n_epochs),
                 acc_1st.mean(0) - np.std(acc_1st, 0) / np.sqrt(n_runs),
                 acc_1st.mean(0) + np.std(acc_1st, 0) / np.sqrt(n_runs),
                 alpha=0.5,
-                color="orange",
+                color=[255 / 255, 102 / 255, 0],
                 edgecolor=None,
             )
-            axs1[i].plot(np.arange(n_epochs), acc_2nd.mean(0), color="blue")
+            axs1[i].plot(np.arange(n_epochs), acc_2nd.mean(0), color=[0, 0, 128 / 255])
             axs1[i].fill_between(
                 np.arange(n_epochs),
                 acc_2nd.mean(0) - np.std(acc_2nd, 0) / np.sqrt(n_runs),
                 acc_2nd.mean(0) + np.std(acc_2nd, 0) / np.sqrt(n_runs),
                 alpha=0.5,
-                color="blue",
+                color=[0, 0, 128 / 255],
                 edgecolor=None,
             )
             axs1[i].set_ylim([0.4, 1.05])
@@ -739,22 +750,24 @@ def plot_basicstats(
             f1.tight_layout()
 
             # unit allocation (task factorisation)
-            axs2[i].plot(np.arange(n_epochs), t_b.mean(0), color="orange")
+            axs2[i].plot(
+                np.arange(n_epochs), t_b.mean(0), color=[255 / 255, 102 / 255, 0]
+            )
             axs2[i].fill_between(
                 np.arange(n_epochs),
                 t_b.mean(0) - np.std(t_b, 0) / np.sqrt(n_runs),
                 t_b.mean(0) + np.std(t_b, 0) / np.sqrt(n_runs),
                 alpha=0.5,
-                color="orange",
+                color=[255 / 255, 102 / 255, 0],
                 edgecolor=None,
             )
-            axs2[i].plot(np.arange(n_epochs), t_a.mean(0), color="blue")
+            axs2[i].plot(np.arange(n_epochs), t_a.mean(0), color=[0, 0, 128 / 255])
             axs2[i].fill_between(
                 np.arange(n_epochs),
                 t_a.mean(0) - np.std(t_a, 0) / np.sqrt(n_runs),
                 t_a.mean(0) + np.std(t_a, 0) / np.sqrt(n_runs),
                 alpha=0.5,
-                color="blue",
+                color=[0, 0, 128 / 255],
                 edgecolor=None,
             )
             axs2[i].set_yticks([0, 0.5, 1])
@@ -859,22 +872,22 @@ def plot_basicstats(
         cmats_b = np.array(cmats_b)
 
         # accuracy
-        axs1.plot(np.arange(n_epochs), acc_1st.mean(0), color="orange")
+        axs1.plot(np.arange(n_epochs), acc_1st.mean(0), color=[255 / 255, 102 / 255, 0])
         axs1.fill_between(
             np.arange(n_epochs),
             acc_1st.mean(0) - np.std(acc_1st, 0) / np.sqrt(n_runs),
             acc_1st.mean(0) + np.std(acc_1st, 0) / np.sqrt(n_runs),
             alpha=0.5,
-            color="orange",
+            color=[255 / 255, 102 / 255, 0],
             edgecolor=None,
         )
-        axs1.plot(np.arange(n_epochs), acc_2nd.mean(0), color="blue")
+        axs1.plot(np.arange(n_epochs), acc_2nd.mean(0), color=[0, 0, 128 / 255])
         axs1.fill_between(
             np.arange(n_epochs),
             acc_2nd.mean(0) - np.std(acc_2nd, 0) / np.sqrt(n_runs),
             acc_2nd.mean(0) + np.std(acc_2nd, 0) / np.sqrt(n_runs),
             alpha=0.5,
-            color="blue",
+            color=[0, 0, 128 / 255],
             edgecolor=None,
         )
         axs1.set_ylim([0.4, 1.05])
@@ -888,22 +901,22 @@ def plot_basicstats(
         f1.tight_layout()
 
         # unit allocation (task factorisation)
-        axs2.plot(np.arange(n_epochs), t_b.mean(0), color="orange")
+        axs2.plot(np.arange(n_epochs), t_b.mean(0), color=[255 / 255, 102 / 255, 0])
         axs2.fill_between(
             np.arange(n_epochs),
             t_b.mean(0) - np.std(t_b, 0) / np.sqrt(n_runs),
             t_b.mean(0) + np.std(t_b, 0) / np.sqrt(n_runs),
             alpha=0.5,
-            color="orange",
+            color=[255 / 255, 102 / 255, 0],
             edgecolor=None,
         )
-        axs2.plot(np.arange(n_epochs), t_a.mean(0), color="blue")
+        axs2.plot(np.arange(n_epochs), t_a.mean(0), color=[0, 0, 128 / 255])
         axs2.fill_between(
             np.arange(n_epochs),
             t_a.mean(0) - np.std(t_a, 0) / np.sqrt(n_runs),
             t_a.mean(0) + np.std(t_a, 0) / np.sqrt(n_runs),
             alpha=0.5,
-            color="blue",
+            color=[0, 0, 128 / 255],
             edgecolor=None,
         )
         axs2.set_yticks([0, 0.5, 1])
@@ -1423,6 +1436,7 @@ def plot_mds(
     n_runs: int = 50,
     resultsdir: str = "../results/",
     axlims: int = 5,
+    fixtreesbug: bool = True,
 ):
     """visualises hidden layer activity with MDS projection into 3 dim
 
@@ -1448,9 +1462,15 @@ def plot_mds(
                 "rb",
             ) as f:
                 results = pickle.load(f)
-            rdms[r, :, :] = squareform(
-                pdist(results[layer][-1, :, :], metric="euclidean")
-            )
+            if fixtreesbug:
+                rdms[r, :, :] = squareform(
+                    pdist(results[layer][-1][:, :], metric="euclidean")
+                )
+
+            else:
+                rdms[r, :, :] = squareform(
+                    pdist(results[layer][-1, :, :], metric="euclidean")
+                )
 
         embedding = MDS(
             n_components=3,
@@ -1616,8 +1636,8 @@ def plot_oja(
 
     plt.figure(figsize=(3, 2.5), dpi=300)
 
-    a = plt.plot([wi[-1] for wi in ws], color="orange", linewidth=1)
-    b = plt.plot([wi[-2] for wi in ws], color="blue", linewidth=1)
+    a = plt.plot([wi[-1] for wi in ws], color=[255 / 255, 102 / 255, 0], linewidth=1)
+    b = plt.plot([wi[-2] for wi in ws], color=[0, 0, 128 / 255], linewidth=1)
     plt.legend([a[0], b[0]], ["1st task", "2nd task"], frameon=False)
 
     plt.title("Task weights, Oja", fontsize=8)
@@ -3229,14 +3249,14 @@ def plot_modelcomparison_hiddenlayerRSA(
         "sluggish_oja_int_select_sv",
         "oja_blocked_new_select_halfcenter",
     ],
-    sluggishness: float = 0.05,
+    sluggishness: float = 0.48,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
 ) -> dict:
     idx = np.where(sluggish_vals == sluggishness)[0][0]
     betas_blocked = []
     betas_int = []
-    rdms, dmat = eval.gen_modelrdms(ctx_offset=1)
+    rdms, dmat = eval.gen_modelrdms(ctx_offset=6)
 
     for r in np.arange(0, n_runs):
         with open(
@@ -3394,7 +3414,7 @@ def plot_modelcomparison_taskselectivity(
         "sluggish_oja_int_select_sv",
         "oja_blocked_new_select_halfcenter",
     ],
-    sluggishness: float = 0.05,
+    sluggishness: float = 0.48,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
 ):
@@ -3489,7 +3509,7 @@ def plot_modelcomparison_readout(
         "sluggish_oja_int_select_sv",
         "oja_blocked_new_select_halfcenter",
     ],
-    sluggishness: float = 0.05,
+    sluggishness: float = 0.48,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
 ):
@@ -3497,16 +3517,18 @@ def plot_modelcomparison_readout(
     idx = np.where(sluggishness == sluggish_vals)[0][0]
 
     args = parser.parse_args(args=[])
-    args.n_episodes = 2
+    args.n_episodes = 1
     args.ctx_scaling = ctx_scaling
-    args.centering = True
+    args.centering = False
     args.ctx_avg = False
     if ds == "blobs":
         dataset = data.make_blobs_dataset(args)
     elif ds == "trees":
         dataset = data.make_trees_dataset(args)
 
+    
     dmat = eval.make_dmat(dataset["f_all"])
+    
 
     readout_magnitude = np.empty((50, 3))
     for r in np.arange(0, n_runs):
@@ -3521,10 +3543,10 @@ def plot_modelcomparison_readout(
         ) as f:
             results = pickle.load(f)
 
-        yh = results["all_y_hidden"][1, :, :]
+        yh = np.array(results["all_y_hidden"][1, :, :],dtype=np.float64)
         selectivity_matrix = np.zeros((100, 6))
         for i_neuron in range(100):
-            y_neuron = yh[:, i_neuron]
+            y_neuron = yh[:, i_neuron]           
             lr = sm.OLS(zscore(y_neuron), dmat)
             regr_results = lr.fit()
             # if only a single regressor is significant, store that neuron's selectivity
@@ -3579,7 +3601,7 @@ def plot_modelcomparison_readout(
         ) as f:
             results = pickle.load(f)
 
-        yh = results["all_y_hidden"][1, :, :]
+        yh = np.array(results["all_y_hidden"][1, :, :],dtype=np.float64)
         selectivity_matrix = np.zeros((100, 6))
         for i_neuron in range(100):
             y_neuron = yh[:, i_neuron]
@@ -3719,7 +3741,12 @@ def plot_modelcomparison_readout(
     plt.tight_layout()
 
 
-def plot_gridsearch_modelvalidation():
+def plot_gridsearch_modelvalidation(
+    model_int: str = "sluggish_oja_int_select_sv",
+    model_blocked: str = "sluggish_oja_blocked_select_sv",
+    sluggish_vals=np.round(np.linspace(0.05, 1, 20), 2),
+    temp_vals=np.logspace(np.log(0.1), np.log(4), 20),
+):
     _, _, mats = eval.gen_behav_models()
     tmp_b = mats[0].ravel()[:, np.newaxis]
     tmp_i = mats[1].ravel()[:, np.newaxis]
@@ -3730,16 +3757,30 @@ def plot_gridsearch_modelvalidation():
     plt.imshow(tmp_i.reshape(10, 5))
     plt.title("interleaved model")
 
-    mses_b = choicemodel.gridsearch_modelparams(tmp_b, curriculum="blocked")
+    mses_b = choicemodel.gridsearch_modelparams(
+        tmp_b,
+        curriculum="blocked",
+        model_int=model_int,
+        model_blocked=model_blocked,
+        sluggish_vals=sluggish_vals,
+        temp_vals=temp_vals,
+    )
     plt.figure()
-    plt.imshow(np.fliplr(np.array(mses_b).reshape(20, 20)))
+    plt.imshow(np.fliplr(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals))))
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("blocked model")
     plt.colorbar()
-    mses_i = choicemodel.gridsearch_modelparams(tmp_i, curriculum="interleaved")
+    mses_i = choicemodel.gridsearch_modelparams(
+        tmp_i,
+        curriculum="interleaved",
+        model_int=model_int,
+        model_blocked=model_blocked,
+        sluggish_vals=sluggish_vals,
+        temp_vals=temp_vals,
+    )
     plt.figure()
-    plt.imshow(np.fliplr(np.array(mses_i).reshape(20, 20)))
+    plt.imshow(np.fliplr(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals))))
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("interleaved model")
@@ -3748,78 +3789,94 @@ def plot_gridsearch_modelvalidation():
     plt.figure(figsize=(15, 5))
     plt.subplot(1, 2, 1)
     plt.plot(
-        np.array(mses_b).reshape(20, 20).mean(1), color="lightgreen", linestyle="-"
+        np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1), color="lightgreen", linestyle="-"
     )
-    plt.plot(np.array(mses_i).reshape(20, 20).mean(1), color="orange", linestyle="-")
+    plt.plot(
+        np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1),
+        color=[255 / 255, 102 / 255, 0],
+        linestyle="-",
+    )
     plt.scatter(
         np.where(
-            np.array(mses_b).reshape(20, 20).mean(1)
-            == np.min(np.array(mses_b).reshape(20, 20).mean(1))
+            np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1)
+            == np.min(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1))
         )[0][0],
-        np.min(np.array(mses_b).reshape(20, 20).mean(1)),
+        np.min(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1)),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.array(mses_i).reshape(20, 20).mean(1)
-            == np.min(np.array(mses_i).reshape(20, 20).mean(1))
+            np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1)
+            == np.min(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1))
         )[0][0],
-        np.min(np.array(mses_i).reshape(20, 20).mean(1)),
+        np.min(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1)),
         marker="d",
         s=100,
-        color="orange",
+        color=[255 / 255, 102 / 255, 0],
     )
     plt.legend(("blocked", "interleaved"))
     plt.xlabel("slope")
     plt.ylabel("mse")
     plt.subplot(1, 2, 2)
     plt.plot(
-        np.flip(np.array(mses_b).reshape(20, 20).mean(0)),
+        np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0)),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        np.flip(np.array(mses_i).reshape(20, 20).mean(0)), color="orange", linestyle="-"
+        np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0)),
+        color=[255 / 255, 102 / 255, 0],
+        linestyle="-",
     )
     plt.scatter(
         np.where(
-            np.flip(np.array(mses_b).reshape(20, 20).mean(0))
-            == np.min(np.flip(np.array(mses_b).reshape(20, 20).mean(0)))
+            np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0))
+            == np.min(np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0)))
         )[0][0],
-        np.min(np.flip(np.array(mses_b).reshape(20, 20).mean(0))),
+        np.min(np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0))),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.flip(np.array(mses_i).reshape(20, 20).mean(0))
-            == np.min(np.flip(np.array(mses_i).reshape(20, 20).mean(0)))
+            np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0))
+            == np.min(np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0)))
         )[0][0],
-        np.min(np.flip(np.array(mses_i).reshape(20, 20).mean(0))),
+        np.min(np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0))),
         marker="d",
         s=100,
-        color="orange",
+        color=[255 / 255, 102 / 255, 0],
     )
     plt.legend(("blocked", "interleaved"))
     plt.xlabel("sluggishness")
     plt.ylabel("mse")
 
 
-def plot_gridsearch_singlesubjects():
+def plot_gridsearch_singlesubjects(
+    model_int: str = "sluggish_oja_int_select_sv",
+    model_blocked: str = "sluggish_oja_blocked_select_sv",
+    sluggish_vals=np.round(np.linspace(0.05, 1, 20), 2),
+    temp_vals=np.logspace(np.log(0.1), np.log(4), 20),
+):
     # grid search at single subject level
-    gs_results = choicemodel.wrapper_gridsearch_modelparams()
+    gs_results = choicemodel.wrapper_gridsearch_modelparams(
+        model_int=model_int,
+        model_blocked=model_blocked,
+        sluggish_vals=sluggish_vals,
+        temp_vals=temp_vals,
+    )
     plt.figure()
-    plt.imshow(np.fliplr(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0)))
+    plt.imshow(np.fliplr(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, blocked")
     plt.colorbar()
 
     plt.figure()
-    plt.imshow(np.fliplr(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0)))
+    plt.imshow(np.fliplr(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, interleaved")
@@ -3829,34 +3886,34 @@ def plot_gridsearch_singlesubjects():
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
     plt.plot(
-        gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1),
+        gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1),
-        color="orange",
+        gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
+        color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)
-            == np.min(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1))
+            gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
+            == np.min(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
         )[0][0],
-        np.min(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)),
+        np.min(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)
-            == np.min(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1))
+            gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
+            == np.min(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
         )[0][0],
-        np.min(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)),
+        np.min(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
         marker="d",
         s=100,
-        color="orange",
+        color=[255 / 255, 102 / 255, 0],
     )
     plt.title("sigmoid slope")
     plt.xlabel("param val")
@@ -3864,34 +3921,34 @@ def plot_gridsearch_singlesubjects():
     plt.legend(("blocked", "interleaved"))
     plt.subplot(1, 2, 2)
     plt.plot(
-        np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0)),
+        np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0)),
-        color="orange",
+        np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
+        color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))
-            == np.min(np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0)))
+            np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
+            == np.min(np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)))
         )[0][0],
-        np.min(np.flip(gs_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))),
+        np.min(np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))
-            == np.min(np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0)))
+            np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
+            == np.min(np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)))
         )[0][0],
-        np.min(np.flip(gs_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))),
+        np.min(np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
         marker="d",
         s=100,
-        color="orange",
+        color=[255 / 255, 102 / 255, 0],
     )
     plt.title("sluggishness")
     plt.xlabel("param val")
@@ -3904,29 +3961,40 @@ def plot_gridsearch_singlesubjects():
         f"{np.argmin(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(0))}"
     )
     print(
-        f"estimated sluggishness (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(0))}"
+        f"estimated sluggishness (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,len(sluggish_vals),len(temp_vals)).mean(0).mean(0))}"
     )
     print(
-        f"estimated slope (idx), interleaved: {np.argmin(gs_results['cmat_i'].reshape(-1,20,20).mean(0).mean(1))}"
+        f"estimated slope (idx), interleaved: {np.argmin(gs_results['cmat_i'].reshape(-1,len(sluggish_vals),len(temp_vals)).mean(0).mean(1))}"
     )
     print(
-        f"estimated slope (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,20,20).mean(0).mean(1))}"
+        f"estimated slope (idx), blocked: {np.argmin(gs_results['cmat_b'].reshape(-1,len(sluggish_vals),len(temp_vals)).mean(0).mean(1))}"
     )
     # np.logspace(np.log(0.1), np.log(4), 20)[12]
 
 
-def plot_gridsearch_group():
+def plot_gridsearch_group(
+    model_int: str = "sluggish_oja_int_select_sv",
+    model_blocked: str = "sluggish_oja_blocked_select_sv",
+    sluggish_vals=np.round(np.linspace(0.05, 1, 20), 2),
+    temp_vals=np.logspace(np.log(0.1), np.log(4), 20),
+):
     # grid search at group level
-    gs_m_results = choicemodel.wrapper_gridsearch_modelparams(single_subs=False)
+    gs_m_results = choicemodel.wrapper_gridsearch_modelparams(
+        single_subs=False,
+        model_int=model_int,
+        model_blocked=model_blocked,
+        sluggish_vals=sluggish_vals,
+        temp_vals=temp_vals,
+    )
     plt.figure()
-    plt.imshow(np.fliplr(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0)))
+    plt.imshow(np.fliplr(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, blocked")
     plt.colorbar()
 
     plt.figure()
-    plt.imshow(np.fliplr(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0)))
+    plt.imshow(np.fliplr(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, interleaved")
@@ -3936,34 +4004,34 @@ def plot_gridsearch_group():
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
     plt.plot(
-        gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1),
+        gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1),
-        color="orange",
+        gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
+        color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)
-            == np.min(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1))
+            gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
+            == np.min(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
         )[0][0],
-        np.min(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(1)),
+        np.min(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)
-            == np.min(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1))
+            gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
+            == np.min(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
         )[0][0],
-        np.min(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(1)),
+        np.min(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
         marker="d",
         s=100,
-        color="orange",
+        color=[255 / 255, 102 / 255, 0],
     )
     plt.title("sigmoid slope")
     plt.xlabel("param val")
@@ -3971,38 +4039,38 @@ def plot_gridsearch_group():
     plt.legend(("blocked", "interleaved"))
     plt.subplot(1, 2, 2)
     plt.plot(
-        np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0)),
+        np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0)),
-        color="orange",
+        np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
+        color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))
+            np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
             == np.min(
-                np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))
+                np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
             )
         )[0][0],
-        np.min(np.flip(gs_m_results["cmat_b"].reshape(-1, 20, 20).mean(0).mean(0))),
+        np.min(np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))
+            np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
             == np.min(
-                np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))
+                np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
             )
         )[0][0],
-        np.min(np.flip(gs_m_results["cmat_i"].reshape(-1, 20, 20).mean(0).mean(0))),
+        np.min(np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
         marker="d",
         s=100,
-        color="orange",
+        color=[255 / 255, 102 / 255, 0],
     )
     plt.title("sluggishness")
     plt.xlabel("param val")
@@ -4011,14 +4079,14 @@ def plot_gridsearch_group():
     plt.tight_layout()
 
     print(
-        f"estimated sluggishness (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(20,20).mean(0))}"
+        f"estimated sluggishness (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(len(temp_vals), len(sluggish_vals)).mean(0))}"
     )
     print(
-        f"estimated sluggishness (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(20,20).mean(0))}"
+        f"estimated sluggishness (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(len(temp_vals), len(sluggish_vals)).mean(0))}"
     )
     print(
-        f"estimated slope (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(20,20).mean(1))}"
+        f"estimated slope (idx), interleaved: {np.argmin(gs_m_results['cmat_i'].reshape(len(temp_vals), len(sluggish_vals)).mean(1))}"
     )
     print(
-        f"estimated slope (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(20,20).mean(1))}"
+        f"estimated slope (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(len(temp_vals), len(sluggish_vals)).mean(1))}"
     )

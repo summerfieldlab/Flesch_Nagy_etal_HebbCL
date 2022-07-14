@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 from scipy.io import loadmat
 from utils.eval import gen_behav_models
 
+
 def softmax(x: np.array, T=1e-3) -> np.array:
     """softmax non-linearity
 
@@ -48,7 +49,7 @@ def mse(x: np.array, y: np.array) -> float:
     return mse
 
 
-def compute_mse(
+def compute_mse_choicemats(
     y_sub: np.array,
     i_slug: int,
     i_temp: int,
@@ -56,6 +57,8 @@ def compute_mse(
     temp_vals=np.logspace(np.log(0.1), np.log(4), 20),
     n_runs=50,
     curriculum="interleaved",
+    model_int: str = "sluggish_oja_int_select_sv",
+    model_blocked: str = "sluggish_oja_blocked_select_sv",
 ) -> np.array:
     """computes mse between human and model choices
 
@@ -64,7 +67,8 @@ def compute_mse(
         i_slug (int): index of sluggishness value to fit
         i_temp (int): index of temperature value to fit
         slug_vals (np.array, optional): sluggishness values to use. Defaults to np.round(np.linspace(0.05,1,20),2).
-        temp_vals (np.array, optional): sigmoid temperature values to use. Defaults to np.logspace(np.log(0.1),np.log(4),20).
+        temp_vals (np.array, optional): sigmoid temperature values to use.
+            Defaults to np.logspace(np.log(0.1),np.log(4),20).
         n_runs (int, optional): number of runs to include. Defaults to 50
         curriculum (str, optional): training curriculum (blocked or interleaved). Defaults to interleaved
 
@@ -73,11 +77,7 @@ def compute_mse(
     """
 
     # load models with requested sluggishness value and average over outputs
-    curric_str = (
-        "sluggish_oja_int_select_sv"
-        if curriculum == "interleaved"
-        else "sluggish_oja_blocked_select_sv"
-    )
+    curric_str = model_int if curriculum == "interleaved" else model_blocked
     y_net = []
     for r in np.arange(0, n_runs):
         with open(
@@ -103,7 +103,13 @@ def compute_mse(
 
 
 def gridsearch_modelparams(
-    y_sub: np.array, n_jobs=-1, curriculum="interleaved"
+    y_sub: np.array,
+    n_jobs=-1,
+    curriculum="interleaved",
+    model_int: str = "sluggish_oja_int_select_sv",
+    model_blocked: str = "sluggish_oja_blocked_select_sv",
+    sluggish_vals=np.round(np.linspace(0.05, 1, 20), 2),
+    temp_vals=np.logspace(np.log(0.1), np.log(4), 20),
 ) -> np.array:
     """performs grid search over softmax temperature and
        sluggishness param
@@ -116,27 +122,49 @@ def gridsearch_modelparams(
     Returns:
         np.array: grid of MSE vals for each hp combination
     """
-    sluggish_vals = np.round(np.linspace(0.05, 1, 20), 2)
-    temp_vals = np.logspace(np.log(0.1), np.log(4), 20)
+
     idces_sluggishness = np.arange(0, len(sluggish_vals))
-    a, b = np.meshgrid(idces_sluggishness, idces_sluggishness)
+    idces_temp = np.arange(0, len(temp_vals))
+    a, b = np.meshgrid(idces_sluggishness, idces_temp)
     a, b = a.flatten(), b.flatten()
-    if n_jobs > 1:
-        mses = Parallel(n_jobs=-1, backend="loky", verbose=1)(
-            delayed(compute_mse)(
-                y_sub, i_slug, i_temp, n_runs=20, curriculum=curriculum
+    if n_jobs != 1:
+        mses = Parallel(n_jobs=n_jobs, backend="loky", verbose=1)(
+            delayed(compute_mse_choicemats)(
+                y_sub,
+                i_slug,
+                i_temp,
+                n_runs=20,
+                curriculum=curriculum,
+                model_int=model_int,
+                model_blocked=model_blocked,
             )
             for i_slug, i_temp in zip(a, b)
         )
     else:
         mses = [
-            compute_mse(y_sub, i_slug, i_temp, n_runs=20, curriculum=curriculum)
+            compute_mse_choicemats(
+                y_sub,
+                i_slug,
+                i_temp,
+                n_runs=20,
+                curriculum=curriculum,
+                model_int=model_int,
+                model_blocked=model_blocked,
+                slug_vals=sluggish_vals,
+                temp_vals=temp_vals,
+            )
             for i_slug, i_temp in zip(a, b)
         ]
     return mses
 
 
-def wrapper_gridsearch_modelparams(single_subs=True) -> dict:
+def wrapper_gridsearch_modelparams(
+    single_subs=True,
+    model_int: str = "sluggish_oja_int_select_sv",
+    model_blocked: str = "sluggish_oja_blocked_select_sv",
+    sluggish_vals=np.round(np.linspace(0.05, 1, 20), 2),
+    temp_vals=np.logspace(np.log(0.1), np.log(4), 20),
+) -> dict:
     """wrapper for gridsearch of modelparams
     Args:
         single_subs (bool, optional): whether or not to fit to individual participants. Defaults to True
@@ -163,7 +191,16 @@ def wrapper_gridsearch_modelparams(single_subs=True) -> dict:
                     axis=0,
                 )[:, np.newaxis]
                 assert len(y_sub) == 50
-                mses.append(gridsearch_modelparams(y_sub, curriculum=curriculum))
+                mses.append(
+                    gridsearch_modelparams(
+                        y_sub,
+                        curriculum=curriculum,
+                        model_int=model_int,
+                        model_blocked=model_blocked,
+                        sluggish_vals=sluggish_vals,
+                        temp_vals=temp_vals,
+                    )
+                )
         else:
             y_sub = np.concatenate(
                 (
@@ -173,7 +210,14 @@ def wrapper_gridsearch_modelparams(single_subs=True) -> dict:
                 axis=0,
             )[:, np.newaxis]
             assert len(y_sub) == 50
-            mses = gridsearch_modelparams(y_sub, curriculum=curriculum)
+            mses = gridsearch_modelparams(
+                y_sub,
+                curriculum=curriculum,
+                model_int=model_int,
+                model_blocked=model_blocked,
+                sluggish_vals=sluggish_vals,
+                temp_vals=temp_vals,
+            )
         results[k] = np.asarray(mses)
     return results
 
@@ -256,7 +300,7 @@ def sigmoid_fourparams(
     Returns:
         np.array: outputs of sigmoid
     """
-    if fitlapse == False:
+    if fitlapse is False:
         L = 0
     y = L + (1 - L * 2) / (1.0 + np.exp(-k * (x - x0)))
     return y
@@ -269,7 +313,7 @@ def fit_sigmoid(x: np.array, y, fitlapse=True):
     """
     # initial guesses for max, slope and inflection point
     theta0 = [0.0, 0.0, 0.0]
-    if fitlapse == False:
+    if fitlapse is False:
         popt, _ = curve_fit(
             nolapse(sigmoid_fourparams),
             x,

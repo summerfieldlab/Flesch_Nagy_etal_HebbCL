@@ -7,6 +7,7 @@ from scipy.spatial.distance import squareform, pdist
 from scipy.stats import zscore, multivariate_normal
 from scipy.optimize import minimize
 from sklearn.linear_model import LinearRegression
+from scipy.io import loadmat
 
 
 def sigmoid(x: np.float, L: np.float, k: np.float, x0: np.float) -> np.float:
@@ -488,3 +489,44 @@ def gen_modelrdms(ctx_offset=1):
     rdms = np.asarray(models)
 
     return rdms, dmat
+
+
+def smooth(x: np.ndarray, w: int = 25):
+    xs = np.empty((len(x), len(x.T) // w))
+
+    for i in range(len(x)):
+        jstart = 0
+        for j in range((len(x.T) // w)):
+            xs[i, j] = np.nanmean(x[i, jstart : jstart + w])
+            jstart += w
+    return xs
+
+
+def lcurves_humandata(
+    filepath: str = "D:/RA_PNAS/github_release/Data/Exp1a/allData/",
+    filename: str = "allData_exp1a.mat",
+):
+    dataset = loadmat(filepath + filename, struct_as_record=False, squeeze_me=True)
+    dataset = vars(dataset["allData"])
+    ids_int = np.where(dataset["subCodes"][0, :] == 3)[0]
+    ids_b200 = np.where(
+        (dataset["subCodes"][0, :] != 3) & (dataset["subCodes"][4, :] == 200)
+    )[0]
+
+    # update acc vects
+    training_accs = np.empty((dataset["resp_correct"].shape[1], 400))
+    for i, s in enumerate(range(dataset["resp_correct"].shape[1])):
+        # get cat and acc vectors
+        c = dataset["expt_catIDX"][:400, i]
+        a = dataset["resp_correct"][:400, i].astype(np.float32)
+        # set boundary trials to nan:
+        a[
+            c == 0,
+        ] = np.nan
+        # store acc vect
+        training_accs[i, :] = a
+
+    # extract blocked and int groups:
+    lcurves_b200 = smooth(training_accs[ids_b200, :], w=50)
+    lcurves_int = smooth(training_accs[ids_int, :], w=50)
+    return {"blocked": lcurves_b200, "interleaved": lcurves_int}
