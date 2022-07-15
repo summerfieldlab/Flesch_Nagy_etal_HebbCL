@@ -48,7 +48,34 @@ def execute_run(i_run):
 
 if __name__ == "__main__":
 
-    # REVISION: OJA NETWORK BLOCKED ---------------------------------------------
+    # # REVISION: OJA NETWORK BLOCKED ---------------------------------------------
+    # # overwrite standard parameters
+    # args.cuda = False
+    # args.n_episodes = 200
+    # args.ctx_scaling = 2
+    # args.lrate_sgd = 0.03775369549108046
+    # args.lrate_hebb = 0.00021666673995458582
+    # args.weight_init = 1e-2
+    # args.save_results = True
+    # args.perform_hebb = True
+    # args.gating = "oja"
+    # args.centering = True
+    # args.verbose = False
+    # args.ctx_avg = False
+    # args.ctx_avg_type = "ema"
+    # args.training_schedule = "blocked"
+    # args.n_runs = 50
+
+    # n_eps = np.arange(100, 510, 25)
+    # for ii, ep in enumerate(n_eps):
+    #     if ep != 200:
+    #         args.n_episodes = ep
+    #         args.save_dir = f"blobs_revision_{ep}episodes_blocked_oja"
+    #         Parallel(n_jobs=25, verbose=10)(
+    #             delayed(execute_run)(i_run) for i_run in range(args.n_runs)
+    #         )
+
+    # REVISION: VANILLA NETWORK BLOCKED ---------------------------------------------
     # overwrite standard parameters
     args.cuda = False
     args.n_episodes = 200
@@ -57,8 +84,8 @@ if __name__ == "__main__":
     args.lrate_hebb = 0.00021666673995458582
     args.weight_init = 1e-2
     args.save_results = True
-    args.perform_hebb = True
-    args.gating = "oja"
+    args.perform_hebb = False
+    args.gating = None
     args.centering = True
     args.verbose = False
     args.ctx_avg = False
@@ -66,11 +93,11 @@ if __name__ == "__main__":
     args.training_schedule = "blocked"
     args.n_runs = 50
 
-    n_eps = np.arange(200, 510, 25)
+    n_eps = np.arange(100, 510, 25)
     for ii, ep in enumerate(n_eps):
         if ep != 200:
             args.n_episodes = ep
-            args.save_dir = f"blobs_revision_{ep}episodes_blocked_oja"
-            Parallel(n_jobs=6, verbose=10)(
+            args.save_dir = f"blobs_revision_{ep}episodes_blocked_vanilla"
+            Parallel(n_jobs=25, verbose=10)(
                 delayed(execute_run)(i_run) for i_run in range(args.n_runs)
             )
