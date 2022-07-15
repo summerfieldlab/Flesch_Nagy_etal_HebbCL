@@ -75,9 +75,61 @@ save_dir = "blobs_revision_8episodes_blocked_oja"
 # hps, 200 episodes: ----------------------------------------------------------------
 
  # interleaved vanilla
+n_episodes = 100
+n_layers = 2
+n_hidden = 100
+n_features = 974
+training_schedule = interleaved
+ ctx_avg = False
+ centering = True
+ ctx_scaling = 1
+ n_episodes = 100
+ perform_hebb = False
+ gating = None 
+ lrate_sgd = 0.0018549176154984076
+ save_dir = trees_asha_interleaved_vanilla_1ctx
 
- # blocked vanilla 
+ # blocked vanilla
+ n_episodes = 100
+n_layers = 2
+n_hidden = 100
+n_features = 974 
+ ctx_avg = False
+ centering= True
+ ctx_scaling = 4
+ n_episodes = 100
+ perform_hebb = False
+ gating = None 
+ lrate_sgd = 0.00196874872857594
+ save_dir = "trees_asha_blocked_vanilla_1ctx"
 
- # interleaved ojaall
+ # interleaved ojactx
+ n_episodes = 100
+n_layers = 2
+n_hidden = 100
+n_features = 974
+ training_schedule = interleaved
+ ctx_avg = False
+ centering = True
+ ctx_scaling = 1
+ n_episodes = 100
+ perform_hebb = True
+ gating = oja_ctx
+ lrate_hebb = 0.0066835760364487365
+ lrate_sgd = 0.0018549176154984076
+ save_dir = trees_asha_interleaved_ojactx_1ctx
 
- # blocked ojaall
+ # blocked ojactx
+ n_episodes = 100
+n_layers = 2
+n_hidden = 100
+n_features = 974
+ ctx_avg = False
+ centering= True
+ ctx_scaling = 4
+ n_episodes = 100
+ perform_hebb = True
+ gating = oja_ctx
+ lrate_hebb = 0.0008495631690508217
+ lrate_sgd = 0.00196874872857594
+ save_dir = "trees_asha_blocked_ojactx_1ctx"

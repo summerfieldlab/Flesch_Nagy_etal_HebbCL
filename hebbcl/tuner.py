@@ -462,3 +462,35 @@ def execute_run(
     if args.save_results:
         save_dir.mkdir(parents=True, exist_ok=True)
         logger.save(model)
+
+
+def get_best_config(
+    filename: str,
+    filepath: str = "./results/",
+    whichtrial: int = 0,
+) -> argparse.Namespace:
+    """validates results from HPO by running a series of independent training runs
+     with randomly initialised weights.
+    Stores results to disk
+
+    Args:
+        filename (str): name of tuning run
+        filepath (str, optional): path to tuning results. Defaults to "./results/".
+        whichtrial (int, optional): trial from HPO df to use. Defaults to 0 (first).
+
+    """
+
+    # load tuner results
+    results = load_tuner_results(filename, filepath)
+    args = argparse.Namespace(**results["config"])
+
+    # extract best config and set args
+    df = results["df"].sort_values("mean_loss")
+    params = ["config.lrate_sgd", "config.lrate_hebb", "config.ctx_scaling"]
+    hps = dict(df[[c for c in df.columns if c in params]].iloc[whichtrial, :])
+    for k, v in hps.items():
+        setattr(args, k.split(".")[1], v)
+
+    print(*[str(x) for x in sorted(vars(args).items())],sep="\n")
+
+    return args
