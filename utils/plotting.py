@@ -861,9 +861,14 @@ def plot_basicstats(
                 t_mixed[r, :] = 1 - t_a[r, :] - t_b[r, :] - t_d[r, :]
                 # context correlation:
                 contextcorr[r, :] = results["w_context_corr"]
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
-                    np.float64
-                )
+                if fixtreesbug:
+                    cc = np.clip(results["all_y_out"][1][:,], -709.78, 709.78).astype(
+                        np.float64
+                    )
+                else:
+                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                        np.float64
+                    )
                 choices = 1 / (1 + np.exp(-cc))
                 cmats_a.append(choices[:25].reshape(5, 5))
                 cmats_b.append(choices[25:].reshape(5, 5))
@@ -1083,7 +1088,7 @@ def plot_sluggish_results(
 
         plt.plot(
             np.linspace(0, 4, 100),
-            eval.sigmoid(
+            choicemodel.sigmoid(
                 np.linspace(-2, 2, 100),
                 *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
             ),
@@ -1092,7 +1097,7 @@ def plot_sluggish_results(
         )
         plt.plot(
             np.linspace(0, 4, 100),
-            eval.sigmoid(
+            choicemodel.sigmoid(
                 np.linspace(-2, 2, 100),
                 *choicemodel.fit_sigmoid(
                     zscore(np.arange(-2, 3)), choices_irrel.mean(0)
@@ -1176,7 +1181,7 @@ def plot_sluggish_results(
 
         plt.plot(
             np.linspace(0, 4, 100),
-            eval.sigmoid(
+            choicemodel.sigmoid(
                 np.linspace(-2, 2, 100),
                 *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
             ),
@@ -1185,7 +1190,7 @@ def plot_sluggish_results(
         )
         plt.plot(
             np.linspace(0, 4, 100),
-            eval.sigmoid(
+            choicemodel.sigmoid(
                 np.linspace(-2, 2, 100),
                 *choicemodel.fit_sigmoid(
                     zscore(np.arange(-2, 3)), choices_irrel.mean(0)
@@ -1437,6 +1442,7 @@ def plot_mds(
     resultsdir: str = "../results/",
     axlims: int = 5,
     fixtreesbug: bool = True,
+    flipdims=False,
 ):
     """visualises hidden layer activity with MDS projection into 3 dim
 
@@ -1494,7 +1500,7 @@ def plot_mds(
         2, figsize=(69 * mm, 33 * mm), dpi=300, facecolor="w", edgecolor="k"
     )
 
-    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=axlims)
+    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=axlims,flipdims=flipdims)
 
 
 def biplot_dataset(ds: str = "blobs", ctx_scaling: int = 6):
@@ -1667,8 +1673,10 @@ def plot_modelcomparison_accuracy(
     slope_int: int = 14,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+    fixtreesbug: bool = False,
+    flipdims: bool = False,
 ):
-    pass
+    
     # load slugglish sla int , collect accuracies
     idx = np.where(sluggish_vals == sluggishness)[0][0]
     tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
@@ -1690,7 +1698,7 @@ def plot_modelcomparison_accuracy(
             choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
             acc_int_oja.append(
                 choicemodel.compute_sampled_accuracy(
-                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5)
+                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5),flipdims=flipdims
                 )
             )
     acc_int_oja = np.array(acc_int_oja)
@@ -1702,12 +1710,15 @@ def plot_modelcomparison_accuracy(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
             acc_blocked_oja.append(
                 choicemodel.compute_sampled_accuracy(
-                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5)
+                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5),flipdims=flipdims
                 )
             )
     acc_blocked_oja = np.array(acc_blocked_oja)
@@ -1873,6 +1884,8 @@ def plot_modelcomparison_sigmoids(
     slope_int: int = 14,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+    fixtreesbug: bool = False,
+    flipdims: bool = False,
 ) -> dict:
     # sigmoids
     idx = np.where(sluggish_vals == sluggishness)[0][0]
@@ -1930,7 +1943,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_rel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(
                 zscore(np.arange(-2, 3)), choices["choices_b200_rel"].mean(0)
@@ -1941,7 +1954,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_irrel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(
                 zscore(np.arange(-2, 3)), choices["choices_b200_irrel"].mean(0)
@@ -1971,7 +1984,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_rel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(
                 zscore(np.arange(-2, 3)), choices["choices_int_rel"].mean(0)
@@ -1982,7 +1995,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_irrel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(
                 zscore(np.arange(-2, 3)), choices["choices_int_irrel"].mean(0)
@@ -2015,11 +2028,18 @@ def plot_modelcomparison_sigmoids(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             # choices = choice_sigmoid(cc,T=tempval)
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_a = np.array(cmats_a)
     cmats_b = np.array(cmats_b)
@@ -2054,7 +2074,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_rel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
         ),
@@ -2063,7 +2083,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_irrel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
         ),
@@ -2078,11 +2098,18 @@ def plot_modelcomparison_sigmoids(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             # choices = choice_sigmoid(cc,T=tempval)
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_a = np.array(cmats_a)
     cmats_b = np.array(cmats_b)
@@ -2117,7 +2144,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_rel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
         ),
@@ -2126,7 +2153,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_irrel = plt.plot(
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
         ),
@@ -2160,11 +2187,18 @@ def plot_modelcomparison_sigmoids(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_a = np.array(cmats_a)
     cmats_b = np.array(cmats_b)
@@ -2199,7 +2233,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_in_rel = plt.plot(  # noqa F841
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
         ),
@@ -2208,7 +2242,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_in_irrel = plt.plot(  # noqa F841
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
         ),
@@ -2223,11 +2257,18 @@ def plot_modelcomparison_sigmoids(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_a = np.array(cmats_a)
     cmats_b = np.array(cmats_b)
@@ -2260,7 +2301,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_rel = plt.plot(  # noqa F841
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_rel.mean(0)),
         ),
@@ -2269,7 +2310,7 @@ def plot_modelcomparison_sigmoids(
     )
     f_bl_irrel = plt.plot(  # noqa F841
         np.linspace(0, 4, 100),
-        eval.sigmoid(
+        choicemodel.sigmoid(
             np.linspace(-2, 2, 100),
             *choicemodel.fit_sigmoid(zscore(np.arange(-2, 3)), choices_irrel.mean(0)),
         ),
@@ -2561,6 +2602,8 @@ def plot_modelcomparison_choicemats(
     slope_int: int = 14,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+    fixtreesbug: bool = False,
+    flipdims: bool = False,
 ) -> dict:
     # sigmoids
     idx = np.where(sluggish_vals == sluggishness)[0][0]
@@ -2589,10 +2632,17 @@ def plot_modelcomparison_choicemats(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_baseline["int_a"] = np.array(cmats_a)
     cmats_baseline["int_b"] = np.array(cmats_b)
@@ -2605,10 +2655,17 @@ def plot_modelcomparison_choicemats(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_baseline["bloc_a"] = np.array(cmats_a)
     cmats_baseline["bloc_b"] = np.array(cmats_b)
@@ -2628,11 +2685,18 @@ def plot_modelcomparison_choicemats(
             "rb",
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_emasla["int_a"] = np.array(cmats_a)
     cmats_emasla["int_b"] = np.array(cmats_b)
@@ -2644,11 +2708,18 @@ def plot_modelcomparison_choicemats(
             "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl", "rb"
         ) as f:
             results = pickle.load(f)
-            cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+            if fixtreesbug:
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+            else:
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
-            cmats_a.append(choices[:25].reshape(5, 5))
-            cmats_b.append(choices[25:].reshape(5, 5))
+            if flipdims:
+                cmats_b.append(choices[:25].reshape(5, 5))
+                cmats_a.append(choices[25:].reshape(5, 5))
+            else:
+                cmats_a.append(choices[:25].reshape(5, 5))
+                cmats_b.append(choices[25:].reshape(5, 5))
 
     cmats_emasla["bloc_a"] = np.array(cmats_a)
     cmats_emasla["bloc_b"] = np.array(cmats_b)
@@ -2912,10 +2983,13 @@ def plot_modelcomparison_choicemodel(
     slope_int: int = 14,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+    fixtreesbug: bool = False,
+    flipdims: bool = False,
+    resultsfile: str = "thetas_est"
 ):
 
     try:
-        with open("../results/thetas_est.pkl", "rb") as f:
+        with open(f"../results/{resultsfile}.pkl", "rb") as f:
             all_thetas = pickle.load(f)
         disp_model_estimates(
             all_thetas["humans"], cols=([0.2, 0.2, 0.2], [0.5, 0.5, 0.5])
@@ -2973,12 +3047,21 @@ def plot_modelcomparison_choicemodel(
                 "rb",
             ) as f:
                 results = pickle.load(f)
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                if fixtreesbug:
+                    cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
                     np.float64
                 )
+                else:
+                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                        np.float64
+                    )
                 choices = 1 / (1 + np.exp(-cc))
-                cmats_a.append(choices[:25].reshape(5, 5))
-                cmats_b.append(choices[25:].reshape(5, 5))
+                if flipdims:
+                    cmats_b.append(choices[:25].reshape(5, 5))
+                    cmats_a.append(choices[25:].reshape(5, 5))
+                else:
+                    cmats_a.append(choices[:25].reshape(5, 5))
+                    cmats_b.append(choices[25:].reshape(5, 5))
 
         choicemats_baseline["blocked"]["task_b"] = np.array(cmats_a)
         choicemats_baseline["blocked"]["task_a"] = np.array(cmats_b)
@@ -2995,12 +3078,21 @@ def plot_modelcomparison_choicemodel(
                 "rb",
             ) as f:
                 results = pickle.load(f)
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                if fixtreesbug:
+                    cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
                     np.float64
                 )
+                else:
+                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                        np.float64
+                    )
                 choices = 1 / (1 + np.exp(-cc))
-                cmats_a.append(choices[:25].reshape(5, 5))
-                cmats_b.append(choices[25:].reshape(5, 5))
+                if flipdims:
+                    cmats_b.append(choices[:25].reshape(5, 5))
+                    cmats_a.append(choices[25:].reshape(5, 5))
+                else:
+                    cmats_a.append(choices[:25].reshape(5, 5))
+                    cmats_b.append(choices[25:].reshape(5, 5))
 
         choicemats_baseline["interleaved"]["task_b"] = np.array(cmats_a)
         choicemats_baseline["interleaved"]["task_a"] = np.array(cmats_b)
@@ -3015,13 +3107,22 @@ def plot_modelcomparison_choicemodel(
                 "rb",
             ) as f:
                 results = pickle.load(f)
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                if fixtreesbug:
+                    cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
                     np.float64
                 )
+                else:
+                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                        np.float64
+                    )
                 choices = 1 / (1 + np.exp(-cc))
-                choices = choicemodel.choicemodel.choice_sigmoid(cc, T=tempval_blocked)
-                cmats_a.append(choices[:25].reshape(5, 5))
-                cmats_b.append(choices[25:].reshape(5, 5))
+                choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
+                if flipdims:
+                    cmats_b.append(choices[:25].reshape(5, 5))
+                    cmats_a.append(choices[25:].reshape(5, 5))
+                else:
+                    cmats_a.append(choices[:25].reshape(5, 5))
+                    cmats_b.append(choices[25:].reshape(5, 5))
 
         choicemats_sla["blocked"]["task_b"] = np.array(cmats_a)
         choicemats_sla["blocked"]["task_a"] = np.array(cmats_b)
@@ -3039,13 +3140,22 @@ def plot_modelcomparison_choicemodel(
                 "rb",
             ) as f:
                 results = pickle.load(f)
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                if fixtreesbug:
+                    cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
                     np.float64
                 )
+                else:
+                    cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                        np.float64
+                    )
                 choices = 1 / (1 + np.exp(-cc))
                 choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
-                cmats_a.append(choices[:25].reshape(5, 5))
-                cmats_b.append(choices[25:].reshape(5, 5))
+                if flipdims:
+                    cmats_b.append(choices[:25].reshape(5, 5))
+                    cmats_a.append(choices[25:].reshape(5, 5))
+                else:
+                    cmats_a.append(choices[:25].reshape(5, 5))
+                    cmats_b.append(choices[25:].reshape(5, 5))
 
         choicemats_sla["interleaved"]["task_b"] = np.array(cmats_a)
         choicemats_sla["interleaved"]["task_a"] = np.array(cmats_b)
@@ -3075,7 +3185,7 @@ def plot_modelcomparison_choicemodel(
         }
 
         # all_thetas['emahebb'] = thetas_oja
-        with open("../results/thetas_est.pkl", "wb") as f:
+        with open(f"../results/{resultsfile}.pkl", "wb") as f:
             pickle.dump(all_thetas, f)
 
 
@@ -4090,3 +4200,46 @@ def plot_gridsearch_group(
     print(
         f"estimated slope (idx), blocked: {np.argmin(gs_m_results['cmat_b'].reshape(len(temp_vals), len(sluggish_vals)).mean(1))}"
     )
+
+
+
+
+
+def plot_neps_impact(neps: np.ndarray = np.arange(200, 510, 25),whichruns: str ="oja", n_runs:int = 50,f_id : Union[int, None] = None):
+    """demonstrates impact (or lack thereof) of length of training on 
+        effectiveness of oja's rule.
+
+    Args:
+        neps (np.ndarray, optional): training lengths to plot. Defaults to np.arange(200, 510, 25).
+        whichruns (str, optional): "oja" or "vanilla". Defaults to "oja".
+        n_runs (int, optional): number of training runs. Defaults to 50
+        f_id (Union[int, NoneType], optional): id of matplotlib figure. Defaults to None.
+    """
+    # cycle through files (and runs) and extract accuracy on 1st & 2nd task
+    accs_1st = np.empty((len(neps),n_runs))
+    accs_2nd = np.empty((len(neps),n_runs))
+    for i, ep in enumerate(neps):
+        for r in range(n_runs):
+            with open(f"../checkpoints/blobs_revision_{ep}episodes_blocked_{whichruns}/run_{r}/results.pkl","rb") as f:
+                data = pickle.load(f)
+            accs_1st[i, r] = data["acc_1st"][-1]
+            accs_2nd[i, r] = data["acc_2nd"][-1]
+
+    # bar plot of results (if fig exists, update content. otherwise new one)
+    if not f_id:
+        plt.figure(f_id)
+    for i in range(accs_1st.shape[0]):
+        plt.bar(i-0.2,np.mean(accs_1st[i,:]), yerr=np.std(accs_1st[i, :])/np.sqrt(len(accs_1st)),color=[255 / 255, 102 / 255, 0],width=0.4)
+        plt.bar(i+0.2,np.mean(accs_2nd[i,:]), yerr=np.std(accs_2nd[i, :])/np.sqrt(len(accs_2nd)),color=[0, 0, 128 / 255],width=0.4)
+    plt.xticks(ticks=np.arange(len(neps)),labels=neps)
+    # plt.yticks(ticks=np.arange(0.0,1.1,0.25),labels=np.arange(0.0,1.001,0.25)*100)
+    plt.xlabel("number of episodes")
+    plt.ylabel("accuracy (%)")
+    # plt.ylim([0.45,1.1])
+    plt.title(f"{whichruns} net")
+    ax = plt.gca()
+    for i in ["top","right"]:
+        ax.spines[i].set_visible(False)
+    
+        
+    

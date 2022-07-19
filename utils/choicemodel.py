@@ -4,6 +4,8 @@ from joblib import Parallel, delayed
 from scipy.optimize import curve_fit
 from scipy.io import loadmat
 from utils.eval import gen_behav_models
+from typing import List
+from scipy.optimize import minimize
 
 
 def softmax(x: np.array, T=1e-3) -> np.array:
@@ -240,8 +242,29 @@ def sample_choices(y_est: np.array, n_samp=10000) -> np.array:
 
 # sampled_choices = sample_choices(cmats_a)
 
+def fit_model_to_subjects(choicemats, n_runs=1):
+    """
+    wrapper for fit_choice_model
+    loops over subjects
+    """
+    tasks = ["task_a", "task_b"]
 
-def compute_sampled_accuracy(cmat_a: np.array, cmat_b: np.array) -> float:
+    thetas = {"bias_a": [], "bias_b": [], "lapse": [], "slope": [], "offset": []}
+    for sub in range(len(choicemats[tasks[0]])):
+        cmat_a = choicemats[tasks[0]][sub, :, :]
+        cmat_b = choicemats[tasks[1]][sub, :, :]
+        cmats = np.concatenate((cmat_a.flatten(), cmat_b.flatten()))
+        theta_hat = fit_choice_model(cmats, n_runs=n_runs)
+        theta_hat[0] = angular_bias(theta_hat[0], 90, task="a")
+        theta_hat[1] = angular_bias(theta_hat[1], 180, task="b")
+        for idx, k in enumerate(thetas.keys()):
+            thetas[k].append(theta_hat[idx])
+    for k in thetas.keys():
+        thetas[k] = np.asarray(thetas[k])
+    thetas["bias"] = np.stack((thetas["bias_a"], thetas["bias_b"]), axis=1).mean(1)
+    return thetas
+
+def compute_sampled_accuracy(cmat_a: np.array, cmat_b: np.array, flipdims: bool =False) -> float:
     """computes accuracy based on choices sampled from sigmoid
 
     Args:
@@ -253,8 +276,12 @@ def compute_sampled_accuracy(cmat_a: np.array, cmat_b: np.array) -> float:
     """
     # generate ground truth matrices:
     _, _, cmats = gen_behav_models()
-    cmat_gt_a = cmats[0, 0, :, :]
-    cmat_gt_b = cmats[0, 1, :, :]
+    if flipdims:
+        cmat_gt_a = cmats[0, 1, :, :]
+        cmat_gt_b = cmats[0, 0, :, :]
+    else:
+        cmat_gt_a = cmats[0, 0, :, :]
+        cmat_gt_b = cmats[0, 1, :, :]
     # indices of non-boundary trials:
     valid_a = np.where(cmat_gt_a.ravel() != 0.5)
     valid_b = np.where(cmat_gt_b.ravel() != 0.5)
@@ -272,6 +299,161 @@ def compute_sampled_accuracy(cmat_a: np.array, cmat_b: np.array) -> float:
     ]
     return (np.mean(accs_a) + np.mean(accs_b)) / 2
 
+
+def sigmoid(x: np.float, L: np.float, k: np.float, x0: np.float) -> np.float:
+    """sigmoidal non-linearity with three free parameters
+        note: x can also be a vector
+    Args:
+        x (np.float): inputs
+        L (np.float): lapse rate (0,0.5)
+        k (np.float): slope (0,)
+        x0 (np.float): offset (0,)
+
+    Returns:
+        np.float: transformed y-value
+    """
+
+    y = L + (1 - L * 2) / (1.0 + np.exp(-k * (x - x0)))
+    return y
+
+
+def scalar_projection(X: np.array, phi: np.float) -> np.float:
+    """performs scalar projection of x onto y by angle phi
+
+    Args:
+        X (np.array): inputs
+        phi (np.float): angle of projection
+
+    Returns:
+        np.float: projected values
+    """
+    phi_bound = np.deg2rad(phi)
+    phi_ort = phi_bound - np.deg2rad(90)
+    y = X @ np.array([np.cos(phi_ort), np.sin(phi_ort)]).T
+    return y
+
+
+def angular_distance(target_ang: np.float, source_ang: np.float) -> np.float:
+    """computes angular distance between source and target angle
+
+    Args:
+        target_ang (np.float): angle in degrees
+        source_ang (np.float): angle in degrees
+
+    Returns:
+        np.float: angular distance in degrees
+    """
+    target_ang = np.deg2rad(target_ang)
+    source_ang = np.deg2rad(source_ang)
+    return np.rad2deg(
+        np.arctan2(np.sin(target_ang - source_ang), np.cos(target_ang - source_ang))
+    )
+
+
+def angular_bias(ref: np.float, est: np.float, task="a") -> np.float:
+    """computes angular bias (0= orth,45= diag bounds)
+
+    Args:
+        ref (np.float): reference angle
+        est (np.float): estimated angle
+        task (str, optional): which task (determines sign). Defaults to "a".
+
+    Returns:
+        np.float: angular bias
+    """
+    bias = angular_distance(est, ref)
+    if task == "a":
+        bias = -bias
+    return bias
+
+
+def objective_function(X: np.array, y_true: np.array) -> np.float:
+    """computes loss between labels and predictions
+
+    Args:
+        X (np.array): inputs to model
+        y_true (np.array): labels
+
+    Returns:
+        np.float: loss
+    """
+
+    def loss(theta):
+        return -np.sum(np.log(1.0 - np.abs(y_true - choice_model(X, theta)) + 1e-5))
+
+    return loss
+
+
+def choice_model(X: np.array, theta: List[np.float]) -> np.array:
+    """generates choice probability matrix
+    free parameters: orientation of bound, slope, offset and lapse rate of sigmoidal transducer
+
+    Args:
+        X (np.array): inputs
+        theta (List[np.float]): parameters (projection angle a & b, lapse, slope and offset of sigmoid)
+
+    Returns:
+        np.array: predictions
+    """
+
+    # projection task a
+    X1 = scalar_projection(X, theta[0])
+    # projection task b
+    X2 = scalar_projection(X, theta[1])
+
+    # inputs to model
+    X_in = np.concatenate((X1, X2))
+
+    # pass through transducer:
+    y_hat = sigmoid(X_in, theta[2], theta[3], theta[4])
+
+    # return outputs
+    return y_hat
+
+
+def fit_choice_model(y_true: np.array, n_runs=1) -> List:
+    """fits choice model to data, using Nelder-Mead or L-BFGS-B algorithm
+
+    Args:
+        y_true (np.array): labels
+        n_runs (int, optional): number of runs. Defaults to 1.
+
+    Returns:
+        List: estimated parameters
+    """
+
+    assert n_runs > 0
+
+    a, b = np.meshgrid(np.arange(-2, 3), np.arange(-2, 3))
+    a = a.flatten()
+    b = b.flatten()
+    X = np.stack((a, b)).T
+    theta_bounds = ((0, 360), (0, 360), (0, 0.5), (0, 20), (-1, 1))
+    if n_runs == 1:
+        theta_init = [90, 180, 0, 2, 0]
+        results = minimize(
+            objective_function(X, y_true),
+            theta_init,
+            bounds=theta_bounds,
+            method="L-BFGS-B",
+        )
+        return results.x
+    elif n_runs > 1:
+        theta_initbounds = ((80, 100), (170, 190), (0, 0.1), (14, 16), (-0.02, 0.02))
+        thetas = []
+        for i in range(10):
+            theta_init = [
+                np.round(np.random.uniform(a[0], a[1]), 2) for a in theta_initbounds
+            ]
+            results = minimize(
+                objective_function(X, y_true),
+                theta_init,
+                bounds=theta_bounds,
+                method="L-BFGS-B",
+            )
+            thetas.append(results.x)
+
+        return np.mean(np.array(thetas), 0)
 
 # scratchpad
 

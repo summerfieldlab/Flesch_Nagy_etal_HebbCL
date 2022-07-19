@@ -86,7 +86,7 @@ if __name__ == "__main__":
     args.save_results = True
     args.perform_hebb = False
     args.gating = None
-    args.centering = True
+    args.centering = False
     args.verbose = False
     args.ctx_avg = False
     args.ctx_avg_type = "ema"
@@ -101,3 +101,8 @@ if __name__ == "__main__":
             Parallel(n_jobs=25, verbose=10)(
                 delayed(execute_run)(i_run) for i_run in range(args.n_runs)
             )
+
+
+
+
+    
