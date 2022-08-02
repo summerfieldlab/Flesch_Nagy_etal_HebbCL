@@ -19,6 +19,7 @@ from utils import eval
 from hebbcl.parameters import parser
 from utils import data
 from sklearn.decomposition import PCA
+import torch
 
 
 def sem(x: np.array, ax: int) -> Union[float, np.array]:
@@ -654,7 +655,6 @@ def plot_basicstats(
     n_epochs: int = 200,
     models: list = ["baseline_interleaved_new_select", "baseline_blocked_new_select"],
     fixtreesbug: bool = False,
-    
 ):
     """plots learning curves (acc, task selectivity, context corr) and choice mats
 
@@ -704,13 +704,17 @@ def plot_basicstats(
                     # outputs:
 
                     if fixtreesbug:
-                        cc = np.clip(results["all_y_out"][1][:,], -709.78, 709.78).astype(
-                            np.float64
-                        )
+                        cc = np.clip(
+                            results["all_y_out"][1][
+                                :,
+                            ],
+                            -709.78,
+                            709.78,
+                        ).astype(np.float64)
                     else:
-                        cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
-                            np.float64
-                        )
+                        cc = np.clip(
+                            results["all_y_out"][1, :], -709.78, 709.78
+                        ).astype(np.float64)
                     choices = 1 / (1 + np.exp(-cc))
                     cmats_a.append(choices[:25].reshape(5, 5))
                     cmats_b.append(choices[25:].reshape(5, 5))
@@ -862,9 +866,13 @@ def plot_basicstats(
                 # context correlation:
                 contextcorr[r, :] = results["w_context_corr"]
                 if fixtreesbug:
-                    cc = np.clip(results["all_y_out"][1][:,], -709.78, 709.78).astype(
-                        np.float64
-                    )
+                    cc = np.clip(
+                        results["all_y_out"][1][
+                            :,
+                        ],
+                        -709.78,
+                        709.78,
+                    ).astype(np.float64)
                 else:
                     cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
                         np.float64
@@ -1500,7 +1508,7 @@ def plot_mds(
         2, figsize=(69 * mm, 33 * mm), dpi=300, facecolor="w", edgecolor="k"
     )
 
-    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=axlims,flipdims=flipdims)
+    plot_MDS_embeddings_2D(xyz_rot, fig, fig_id=2, axlims=axlims, flipdims=flipdims)
 
 
 def biplot_dataset(ds: str = "blobs", ctx_scaling: int = 6):
@@ -1676,7 +1684,7 @@ def plot_modelcomparison_accuracy(
     fixtreesbug: bool = False,
     flipdims: bool = False,
 ):
-    
+
     # load slugglish sla int , collect accuracies
     idx = np.where(sluggish_vals == sluggishness)[0][0]
     tempval_blocked = np.logspace(np.log(0.1), np.log(4), 20)[slope_blocked]
@@ -1698,7 +1706,9 @@ def plot_modelcomparison_accuracy(
             choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
             acc_int_oja.append(
                 choicemodel.compute_sampled_accuracy(
-                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5),flipdims=flipdims
+                    choices[:25].reshape(5, 5),
+                    choices[25:].reshape(5, 5),
+                    flipdims=flipdims,
                 )
             )
     acc_int_oja = np.array(acc_int_oja)
@@ -1711,14 +1721,20 @@ def plot_modelcomparison_accuracy(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
             acc_blocked_oja.append(
                 choicemodel.compute_sampled_accuracy(
-                    choices[:25].reshape(5, 5), choices[25:].reshape(5, 5),flipdims=flipdims
+                    choices[:25].reshape(5, 5),
+                    choices[25:].reshape(5, 5),
+                    flipdims=flipdims,
                 )
             )
     acc_blocked_oja = np.array(acc_blocked_oja)
@@ -2029,9 +2045,13 @@ def plot_modelcomparison_sigmoids(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             # choices = choice_sigmoid(cc,T=tempval)
             if flipdims:
@@ -2099,9 +2119,13 @@ def plot_modelcomparison_sigmoids(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             # choices = choice_sigmoid(cc,T=tempval)
             if flipdims:
@@ -2188,9 +2212,13 @@ def plot_modelcomparison_sigmoids(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
             if flipdims:
@@ -2258,9 +2286,13 @@ def plot_modelcomparison_sigmoids(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
             if flipdims:
@@ -2633,9 +2665,13 @@ def plot_modelcomparison_choicemats(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             if flipdims:
                 cmats_b.append(choices[:25].reshape(5, 5))
@@ -2656,9 +2692,13 @@ def plot_modelcomparison_choicemats(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             if flipdims:
                 cmats_b.append(choices[:25].reshape(5, 5))
@@ -2686,9 +2726,13 @@ def plot_modelcomparison_choicemats(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_interleaved)
             if flipdims:
@@ -2709,9 +2753,13 @@ def plot_modelcomparison_choicemats(
         ) as f:
             results = pickle.load(f)
             if fixtreesbug:
-                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
+                    np.float64
+                )
             else:
-                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(np.float64)
+                cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
+                    np.float64
+                )
             choices = 1 / (1 + np.exp(-cc))
             choices = choicemodel.choice_sigmoid(cc, T=tempval_blocked)
             if flipdims:
@@ -2985,7 +3033,7 @@ def plot_modelcomparison_choicemodel(
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
     fixtreesbug: bool = False,
     flipdims: bool = False,
-    resultsfile: str = "thetas_est"
+    resultsfile: str = "thetas_est",
 ):
 
     try:
@@ -3049,8 +3097,8 @@ def plot_modelcomparison_choicemodel(
                 results = pickle.load(f)
                 if fixtreesbug:
                     cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
-                    np.float64
-                )
+                        np.float64
+                    )
                 else:
                     cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
                         np.float64
@@ -3080,8 +3128,8 @@ def plot_modelcomparison_choicemodel(
                 results = pickle.load(f)
                 if fixtreesbug:
                     cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
-                    np.float64
-                )
+                        np.float64
+                    )
                 else:
                     cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
                         np.float64
@@ -3109,8 +3157,8 @@ def plot_modelcomparison_choicemodel(
                 results = pickle.load(f)
                 if fixtreesbug:
                     cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
-                    np.float64
-                )
+                        np.float64
+                    )
                 else:
                     cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
                         np.float64
@@ -3142,8 +3190,8 @@ def plot_modelcomparison_choicemodel(
                 results = pickle.load(f)
                 if fixtreesbug:
                     cc = np.clip(results["all_y_out"][1][:], -709.78, 709.78).astype(
-                    np.float64
-                )
+                        np.float64
+                    )
                 else:
                     cc = np.clip(results["all_y_out"][1, :], -709.78, 709.78).astype(
                         np.float64
@@ -3362,22 +3410,26 @@ def plot_modelcomparison_hiddenlayerRSA(
     sluggishness: float = 0.48,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+    fixtreesbug: bool = False,
+    ctx_offset: int = 6,
+    whichlayer: str = "all_y_hidden",
 ) -> dict:
     idx = np.where(sluggish_vals == sluggishness)[0][0]
     betas_blocked = []
     betas_int = []
-    rdms, dmat = eval.gen_modelrdms(ctx_offset=6)
+    rdms, dmat = eval.gen_modelrdms(ctx_offset=ctx_offset)
 
     for r in np.arange(0, n_runs):
         with open(
             "../checkpoints/" + hebb_models[1] + "/run_" + str(r) + "/results.pkl", "rb"
         ) as f:
             results = pickle.load(f)
-        y = zscore(
-            squareform(pdist(results["all_y_hidden"][1, :, :]))[
-                np.tril_indices(50, k=-1)
-            ]
-        ).flatten()
+        if fixtreesbug:
+            yh = results[whichlayer][1][:, :]
+        else:
+            yh = results[whichlayer][1, :, :]
+
+        y = zscore(squareform(pdist(yh))[np.tril_indices(50, k=-1)]).flatten()
         lr = LinearRegression()
         lr.fit(dmat, y)
         betas_blocked.append(lr.coef_)
@@ -3394,11 +3446,11 @@ def plot_modelcomparison_hiddenlayerRSA(
             "rb",
         ) as f:
             results = pickle.load(f)
-        y = zscore(
-            squareform(pdist(results["all_y_hidden"][1, :, :]))[
-                np.tril_indices(50, k=-1)
-            ]
-        ).flatten()
+        if fixtreesbug:
+            yh = results[whichlayer][1][:, :]
+        else:
+            yh = results[whichlayer][1, :, :]
+        y = zscore(squareform(pdist(yh))[np.tril_indices(50, k=-1)]).flatten()
         lr = LinearRegression()
         lr.fit(dmat, y)
         betas_int.append(lr.coef_)
@@ -3622,6 +3674,7 @@ def plot_modelcomparison_readout(
     sluggishness: float = 0.48,
     n_runs: int = 20,
     sluggish_vals: np.array = np.round(np.linspace(0.05, 1, 20), 2),
+    fixtreesbug: bool = False,
 ):
 
     idx = np.where(sluggishness == sluggish_vals)[0][0]
@@ -3636,9 +3689,7 @@ def plot_modelcomparison_readout(
     elif ds == "trees":
         dataset = data.make_trees_dataset(args)
 
-    
     dmat = eval.make_dmat(dataset["f_all"])
-    
 
     readout_magnitude = np.empty((50, 3))
     for r in np.arange(0, n_runs):
@@ -3652,11 +3703,13 @@ def plot_modelcomparison_readout(
             "rb",
         ) as f:
             results = pickle.load(f)
-
-        yh = np.array(results["all_y_hidden"][1, :, :],dtype=np.float64)
+        if fixtreesbug:
+            yh = np.array(results["all_y_hidden"][1][:, :], dtype=np.float64)
+        else:
+            yh = np.array(results["all_y_hidden"][1, :, :], dtype=np.float64)
         selectivity_matrix = np.zeros((100, 6))
         for i_neuron in range(100):
-            y_neuron = yh[:, i_neuron]           
+            y_neuron = yh[:, i_neuron]
             lr = sm.OLS(zscore(y_neuron), dmat)
             regr_results = lr.fit()
             # if only a single regressor is significant, store that neuron's selectivity
@@ -3699,7 +3752,7 @@ def plot_modelcomparison_readout(
             np.abs(wo[i_task_b]).mean() if sum(i_task_b) != 0 else 0
         )
         readout_magnitude[r, 2] = np.abs(
-            wo[~((i_task_a is True) | (i_task_b is True))]
+            wo[~((i_task_a == True) | (i_task_b == True))]
         ).mean()
     readout_magnitude_int = readout_magnitude
 
@@ -3711,7 +3764,10 @@ def plot_modelcomparison_readout(
         ) as f:
             results = pickle.load(f)
 
-        yh = np.array(results["all_y_hidden"][1, :, :],dtype=np.float64)
+        if fixtreesbug:
+            yh = np.array(results["all_y_hidden"][1][:, :], dtype=np.float64)
+        else:
+            yh = np.array(results["all_y_hidden"][1, :, :], dtype=np.float64)
         selectivity_matrix = np.zeros((100, 6))
         for i_neuron in range(100):
             y_neuron = yh[:, i_neuron]
@@ -3752,7 +3808,7 @@ def plot_modelcomparison_readout(
             np.abs(wo[i_task_b]).mean() if sum(i_task_b) != 0 else 0
         )
         readout_magnitude[r, 2] = np.abs(
-            wo[~((i_task_a is True) | (i_task_b is True))]
+            wo[~((i_task_a == True) | (i_task_b == True))]
         ).mean()
 
     readout_magnitude_blocked = readout_magnitude
@@ -3899,7 +3955,9 @@ def plot_gridsearch_modelvalidation(
     plt.figure(figsize=(15, 5))
     plt.subplot(1, 2, 1)
     plt.plot(
-        np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1), color="lightgreen", linestyle="-"
+        np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1),
+        color="lightgreen",
+        linestyle="-",
     )
     plt.plot(
         np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1),
@@ -3909,7 +3967,9 @@ def plot_gridsearch_modelvalidation(
     plt.scatter(
         np.where(
             np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1)
-            == np.min(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1))
+            == np.min(
+                np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1)
+            )
         )[0][0],
         np.min(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(1)),
         marker="d",
@@ -3919,7 +3979,9 @@ def plot_gridsearch_modelvalidation(
     plt.scatter(
         np.where(
             np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1)
-            == np.min(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1))
+            == np.min(
+                np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1)
+            )
         )[0][0],
         np.min(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(1)),
         marker="d",
@@ -3942,20 +4004,40 @@ def plot_gridsearch_modelvalidation(
     )
     plt.scatter(
         np.where(
-            np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0))
-            == np.min(np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0)))
+            np.flip(
+                np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0)
+            )
+            == np.min(
+                np.flip(
+                    np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0)
+                )
+            )
         )[0][0],
-        np.min(np.flip(np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0))),
+        np.min(
+            np.flip(
+                np.array(mses_b).reshape(len(temp_vals), len(sluggish_vals)).mean(0)
+            )
+        ),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0))
-            == np.min(np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0)))
+            np.flip(
+                np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0)
+            )
+            == np.min(
+                np.flip(
+                    np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0)
+                )
+            )
         )[0][0],
-        np.min(np.flip(np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0))),
+        np.min(
+            np.flip(
+                np.array(mses_i).reshape(len(temp_vals), len(sluggish_vals)).mean(0)
+            )
+        ),
         marker="d",
         s=100,
         color=[255 / 255, 102 / 255, 0],
@@ -3979,14 +4061,22 @@ def plot_gridsearch_singlesubjects(
         temp_vals=temp_vals,
     )
     plt.figure()
-    plt.imshow(np.fliplr(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
+    plt.imshow(
+        np.fliplr(
+            gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)
+        )
+    )
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, blocked")
     plt.colorbar()
 
     plt.figure()
-    plt.imshow(np.fliplr(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
+    plt.imshow(
+        np.fliplr(
+            gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)
+        )
+    )
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, interleaved")
@@ -3996,31 +4086,63 @@ def plot_gridsearch_singlesubjects(
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
     plt.plot(
-        gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
+        gs_results["cmat_b"]
+        .reshape(-1, len(temp_vals), len(sluggish_vals))
+        .mean(0)
+        .mean(1),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
+        gs_results["cmat_i"]
+        .reshape(-1, len(temp_vals), len(sluggish_vals))
+        .mean(0)
+        .mean(1),
         color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
-            == np.min(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
+            gs_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+            == np.min(
+                gs_results["cmat_b"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(1)
+            )
         )[0][0],
-        np.min(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
+        np.min(
+            gs_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+        ),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
-            == np.min(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
+            gs_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+            == np.min(
+                gs_results["cmat_i"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(1)
+            )
         )[0][0],
-        np.min(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
+        np.min(
+            gs_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+        ),
         marker="d",
         s=100,
         color=[255 / 255, 102 / 255, 0],
@@ -4031,31 +4153,79 @@ def plot_gridsearch_singlesubjects(
     plt.legend(("blocked", "interleaved"))
     plt.subplot(1, 2, 2)
     plt.plot(
-        np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
+        np.flip(
+            gs_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(0)
+        ),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
+        np.flip(
+            gs_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(0)
+        ),
         color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
-            == np.min(np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)))
+            np.flip(
+                gs_results["cmat_b"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
+            == np.min(
+                np.flip(
+                    gs_results["cmat_b"]
+                    .reshape(-1, len(temp_vals), len(sluggish_vals))
+                    .mean(0)
+                    .mean(0)
+                )
+            )
         )[0][0],
-        np.min(np.flip(gs_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
+        np.min(
+            np.flip(
+                gs_results["cmat_b"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
+        ),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
-            == np.min(np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)))
+            np.flip(
+                gs_results["cmat_i"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
+            == np.min(
+                np.flip(
+                    gs_results["cmat_i"]
+                    .reshape(-1, len(temp_vals), len(sluggish_vals))
+                    .mean(0)
+                    .mean(0)
+                )
+            )
         )[0][0],
-        np.min(np.flip(gs_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
+        np.min(
+            np.flip(
+                gs_results["cmat_i"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
+        ),
         marker="d",
         s=100,
         color=[255 / 255, 102 / 255, 0],
@@ -4097,14 +4267,26 @@ def plot_gridsearch_group(
         temp_vals=temp_vals,
     )
     plt.figure()
-    plt.imshow(np.fliplr(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
+    plt.imshow(
+        np.fliplr(
+            gs_m_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+        )
+    )
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, blocked")
     plt.colorbar()
 
     plt.figure()
-    plt.imshow(np.fliplr(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0)))
+    plt.imshow(
+        np.fliplr(
+            gs_m_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+        )
+    )
     plt.xlabel("sluggishness")
     plt.ylabel("slope")
     plt.title("single subject lvl, interleaved")
@@ -4114,31 +4296,63 @@ def plot_gridsearch_group(
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
     plt.plot(
-        gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
+        gs_m_results["cmat_b"]
+        .reshape(-1, len(temp_vals), len(sluggish_vals))
+        .mean(0)
+        .mean(1),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1),
+        gs_m_results["cmat_i"]
+        .reshape(-1, len(temp_vals), len(sluggish_vals))
+        .mean(0)
+        .mean(1),
         color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
-            == np.min(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
+            gs_m_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+            == np.min(
+                gs_m_results["cmat_b"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(1)
+            )
         )[0][0],
-        np.min(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
+        np.min(
+            gs_m_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+        ),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)
-            == np.min(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1))
+            gs_m_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+            == np.min(
+                gs_m_results["cmat_i"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(1)
+            )
         )[0][0],
-        np.min(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(1)),
+        np.min(
+            gs_m_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(1)
+        ),
         marker="d",
         s=100,
         color=[255 / 255, 102 / 255, 0],
@@ -4149,35 +4363,79 @@ def plot_gridsearch_group(
     plt.legend(("blocked", "interleaved"))
     plt.subplot(1, 2, 2)
     plt.plot(
-        np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
+        np.flip(
+            gs_m_results["cmat_b"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(0)
+        ),
         color="lightgreen",
         linestyle="-",
     )
     plt.plot(
-        np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0)),
+        np.flip(
+            gs_m_results["cmat_i"]
+            .reshape(-1, len(temp_vals), len(sluggish_vals))
+            .mean(0)
+            .mean(0)
+        ),
         color=[255 / 255, 102 / 255, 0],
         linestyle="-",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
+            np.flip(
+                gs_m_results["cmat_b"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
             == np.min(
-                np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
+                np.flip(
+                    gs_m_results["cmat_b"]
+                    .reshape(-1, len(temp_vals), len(sluggish_vals))
+                    .mean(0)
+                    .mean(0)
+                )
             )
         )[0][0],
-        np.min(np.flip(gs_m_results["cmat_b"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
+        np.min(
+            np.flip(
+                gs_m_results["cmat_b"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
+        ),
         marker="d",
         s=100,
         color="lightgreen",
     )
     plt.scatter(
         np.where(
-            np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
+            np.flip(
+                gs_m_results["cmat_i"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
             == np.min(
-                np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))
+                np.flip(
+                    gs_m_results["cmat_i"]
+                    .reshape(-1, len(temp_vals), len(sluggish_vals))
+                    .mean(0)
+                    .mean(0)
+                )
             )
         )[0][0],
-        np.min(np.flip(gs_m_results["cmat_i"].reshape(-1, len(temp_vals), len(sluggish_vals)).mean(0).mean(0))),
+        np.min(
+            np.flip(
+                gs_m_results["cmat_i"]
+                .reshape(-1, len(temp_vals), len(sluggish_vals))
+                .mean(0)
+                .mean(0)
+            )
+        ),
         marker="d",
         s=100,
         color=[255 / 255, 102 / 255, 0],
@@ -4202,11 +4460,13 @@ def plot_gridsearch_group(
     )
 
 
-
-
-
-def plot_neps_impact(neps: np.ndarray = np.arange(200, 510, 25),whichruns: str ="oja", n_runs:int = 50,f_id : Union[int, None] = None):
-    """demonstrates impact (or lack thereof) of length of training on 
+def plot_neps_impact(
+    neps: np.ndarray = np.arange(200, 510, 25),
+    whichruns: str = "oja",
+    n_runs: int = 50,
+    f_id: Union[int, None] = None,
+):
+    """demonstrates impact (or lack thereof) of length of training on
         effectiveness of oja's rule.
 
     Args:
@@ -4216,30 +4476,126 @@ def plot_neps_impact(neps: np.ndarray = np.arange(200, 510, 25),whichruns: str =
         f_id (Union[int, NoneType], optional): id of matplotlib figure. Defaults to None.
     """
     # cycle through files (and runs) and extract accuracy on 1st & 2nd task
-    accs_1st = np.empty((len(neps),n_runs))
-    accs_2nd = np.empty((len(neps),n_runs))
+    accs_1st = np.empty((len(neps), n_runs))
+    accs_2nd = np.empty((len(neps), n_runs))
     for i, ep in enumerate(neps):
         for r in range(n_runs):
-            with open(f"../checkpoints/blobs_revision_{ep}episodes_blocked_{whichruns}/run_{r}/results.pkl","rb") as f:
+            with open(
+                f"../checkpoints/blobs_revision_{ep}episodes_blocked_{whichruns}/run_{r}/results.pkl",
+                "rb",
+            ) as f:
                 data = pickle.load(f)
             accs_1st[i, r] = data["acc_1st"][-1]
             accs_2nd[i, r] = data["acc_2nd"][-1]
 
     # bar plot of results (if fig exists, update content. otherwise new one)
     if not f_id:
-        plt.figure(f_id)
+        plt.figure(figsize=(5, 5), dpi=300)
     for i in range(accs_1st.shape[0]):
-        plt.bar(i-0.2,np.mean(accs_1st[i,:]), yerr=np.std(accs_1st[i, :])/np.sqrt(len(accs_1st)),color=[255 / 255, 102 / 255, 0],width=0.4)
-        plt.bar(i+0.2,np.mean(accs_2nd[i,:]), yerr=np.std(accs_2nd[i, :])/np.sqrt(len(accs_2nd)),color=[0, 0, 128 / 255],width=0.4)
-    plt.xticks(ticks=np.arange(len(neps)),labels=neps)
+        plt.bar(
+            i - 0.2,
+            np.mean(accs_1st[i, :]),
+            yerr=np.std(accs_1st[i, :]) / np.sqrt(len(accs_1st)),
+            color=[255 / 255, 102 / 255, 0],
+            width=0.4,
+        )
+        plt.bar(
+            i + 0.2,
+            np.mean(accs_2nd[i, :]),
+            yerr=np.std(accs_2nd[i, :]) / np.sqrt(len(accs_2nd)),
+            color=[0, 0, 128 / 255],
+            width=0.4,
+        )
+    plt.xticks(ticks=np.arange(len(neps)), labels=neps)
     # plt.yticks(ticks=np.arange(0.0,1.1,0.25),labels=np.arange(0.0,1.001,0.25)*100)
     plt.xlabel("number of episodes")
     plt.ylabel("accuracy (%)")
     # plt.ylim([0.45,1.1])
     plt.title(f"{whichruns} net")
     ax = plt.gca()
-    for i in ["top","right"]:
+    for i in ["top", "right"]:
         ax.spines[i].set_visible(False)
-    
+
+
+def plot_hidden_weights(
+    results: dict,
+    model: torch.nn.Module,
+    fixtreesbug: bool = False,
+    ctx_scaling: int = 1,
+    ds: str = "blobs",
+):
+    unit_cols = [
+        [250 / 255, 147 / 255, 30 / 255],
+        [0 / 255, 6 / 255, 189 / 255],
+        [4 / 255, 162 / 255, 201 / 255],
+    ]
+    # get unit ids:
+    args = parser.parse_args(args=[])
+    args.n_episodes = 1
+    args.ctx_scaling = ctx_scaling
+    args.centering = False
+    args.ctx_avg = False
+    if ds == "blobs":
+        dataset = data.make_blobs_dataset(args)
+    elif ds == "trees":
+        dataset = data.make_trees_dataset(args)
+
+    dmat = eval.make_dmat(dataset["f_all"])
+
+    if fixtreesbug:
+        yh = np.array(results["all_y_hidden"][1][:, :], dtype=np.float64)
+    else:
+        yh = np.array(results["all_y_hidden"][1, :, :], dtype=np.float64)
+    selectivity_matrix = np.zeros((100, 6))
+    for i_neuron in range(100):
+        y_neuron = yh[:, i_neuron]
+        lr = sm.OLS(zscore(y_neuron), dmat)
+        regr_results = lr.fit()
+        # if only a single regressor is significant, store that neuron's selectivity
+        if np.sum(regr_results.tvalues > 1.96) == 1:
+            selectivity_matrix[
+                i_neuron,
+                np.where(regr_results.tvalues == np.max(regr_results.tvalues))[0][0],
+            ] = 1
+    i_task_a = (
+        (selectivity_matrix[:, 0] == 0)
+        & (selectivity_matrix[:, 1] == 1)
+        & (selectivity_matrix[:, 2] == 0)
+        & (selectivity_matrix[:, 3] == 0)
+    )
+    i_task_b = (
+        (selectivity_matrix[:, 0] == 0)
+        & (selectivity_matrix[:, 1] == 0)
+        & (selectivity_matrix[:, 2] == 1)
+        & (selectivity_matrix[:, 3] == 0)
+    )
+
+    print(sum(i_task_a), sum(i_task_b))
+    wh = model.W_h.cpu().detach().numpy()
+
+    ws = [
+        wh[:25, i_task_a],
+        wh[:25, i_task_b],
+        wh[:25, ~((i_task_a == True) | (i_task_b == True))],
+    ]
+    ws = [w.mean(1)[:, np.newaxis] for w in ws]
+    unit_cols = [c for c, w in zip(unit_cols, ws) for _ in range(len(w.T))]
+    ws = np.concatenate(ws, axis=1).T
+    print(ws.shape)
+    mm = 1 / 25.4
+    f, axs = plt.subplots(1, 3, figsize=(50 * mm, 20 * mm), dpi=300)
+    axs = axs.ravel()
+    for ax, c, w in zip(axs, unit_cols, ws):
+        im = ax.imshow(w.reshape(5, 5))
+        [i.set_linewidth(1) for i in ax.spines.values()]
+        [i.set_color(c) for i in ax.spines.values()]
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for im in ax.get_images():
+            im.set_clim((-0.1,0.1))
+        cbar = plt.colorbar(im,ax=ax)
+        cbar.ax.tick_params(labelsize=6)
         
-    
+
+    plt.suptitle(f"Hidden Layer Weights".title(), fontsize=6)
+    f.patch.set_facecolor("white")
